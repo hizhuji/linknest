@@ -129,14 +129,22 @@ case 'saveFileInfo':
 	$hide = intval($_POST['hide']);
 	$ispwd = intval($_POST['ispwd']);
 	$pwd = $ispwd==1?trim(htmlspecialchars($_POST['pwd'])):null;
+	$expire_at_input = isset($_POST['expire_at']) ? trim($_POST['expire_at']) : '';
+	$expire_at = null;
+	if($expire_at_input !== ''){
+		$expire_timestamp = strtotime($expire_at_input);
+		if($expire_timestamp === false)exit('{"code":-1,"msg":"有效期格式不正确"}');
+		$expire_at = date('Y-m-d H:i:s', $expire_timestamp);
+	}
+	$max_downloads = pan_normalize_max_downloads(isset($_POST['max_downloads']) ? $_POST['max_downloads'] : 0);
 	if(empty($name))exit('{"code":-1,"msg":"文件名称不能为空"}');
 	if($ispwd==1 && !empty($pwd)){
         if (!preg_match('/^[a-zA-Z0-9]+$/', $pwd)) {
 			exit('{"code":-1,"msg":"下载密码只能为字母和数字"}');
         }
 	}
-	$data = [':id'=>$id, ':name'=>$name, ':type'=>$type, ':hide'=>$hide, ':pwd'=>$pwd];
-	$sql = "UPDATE `pre_file` SET `name`=:name,`type`=:type,`hide`=:hide,`pwd`=:pwd WHERE `id`=:id";
+	$data = [':id'=>$id, ':name'=>$name, ':type'=>$type, ':hide'=>$hide, ':pwd'=>$pwd, ':expire_at'=>$expire_at, ':max_downloads'=>$max_downloads];
+	$sql = "UPDATE `pre_file` SET `name`=:name,`type`=:type,`hide`=:hide,`pwd`=:pwd,`expire_at`=:expire_at,`max_downloads`=:max_downloads WHERE `id`=:id";
 	if($DB->exec($sql, $data)!==false)exit('{"code":0,"msg":"修改文件信息成功！"}');
 	else exit('{"code":-1,"msg":"修改文件信息失败['.$DB->error().']"}');
 break;

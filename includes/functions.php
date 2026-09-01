@@ -664,3 +664,43 @@ function file_output($hash, $type, $size, $name, $is_view = false, $is_admin = f
 		}
 	}
 }
+
+function pan_normalize_expire_days($value) {
+	$value = intval($value);
+	return max(0, min(3650, $value));
+}
+
+function pan_normalize_max_downloads($value) {
+	$value = intval($value);
+	return max(0, min(1000000, $value));
+}
+
+function pan_expire_at_from_days($days, $baseTime = null) {
+	$days = pan_normalize_expire_days($days);
+	if($days === 0) return null;
+	$baseTime = $baseTime === null ? time() : intval($baseTime);
+	return date('Y-m-d H:i:s', $baseTime + ($days * 86400));
+}
+
+function pan_file_access_error($row, $now = null) {
+	$now = $now === null ? time() : intval($now);
+	if(!empty($row['expire_at'])){
+		$expireTime = strtotime($row['expire_at']);
+		if($expireTime !== false && $expireTime <= $now) return 'expired';
+	}
+	$maxDownloads = isset($row['max_downloads']) ? intval($row['max_downloads']) : 0;
+	if($maxDownloads > 0 && intval($row['count']) >= $maxDownloads) return 'limit';
+	return null;
+}
+
+function pan_file_access_message($reason) {
+	if($reason === 'expired') return '该分享链接已过期';
+	if($reason === 'limit') return '该分享链接已达到最大访问次数';
+	return '该分享链接当前不可用';
+}
+
+function pan_record_file_access($DB, $row) {
+	$id = intval($row['id']);
+	$stmt = $DB->query("UPDATE `pre_file` SET `lasttime`=NOW(),`count`=`count`+1 WHERE `id`=:id AND (`expire_at` IS NULL OR `expire_at`>NOW()) AND (`max_downloads`=0 OR `count`<`max_downloads`)", [':id'=>$id]);
+	return $stmt && $stmt->rowCount() === 1;
+}

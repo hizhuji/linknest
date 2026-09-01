@@ -5,7 +5,7 @@ create table `pre_config` (
   PRIMARY KEY  (`k`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `pre_config` VALUES ('version', '1002');
+INSERT INTO `pre_config` VALUES ('version', '1003');
 INSERT INTO `pre_config` VALUES ('admin_user', 'admin');
 INSERT INTO `pre_config` VALUES ('admin_pwd', '');
 INSERT INTO `pre_config` VALUES ('blackip', '');
@@ -48,6 +48,8 @@ CREATE TABLE `pre_file` (
   `pwd` varchar(255) DEFAULT NULL,
   `block` int(1) NOT NULL DEFAULT '0',
   `count` int(11) unsigned NOT NULL DEFAULT '0',
+  `expire_at` datetime DEFAULT NULL,
+  `max_downloads` int(11) unsigned NOT NULL DEFAULT '0',
   `uid` int(11) unsigned NOT NULL DEFAULT '0',
    PRIMARY KEY (`id`),
    KEY `hash` (`hash`),

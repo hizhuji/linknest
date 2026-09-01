@@ -20,6 +20,8 @@ new Vue({
             show: true,
             ispwd: false,
             pwd: '',
+            expire_days: 0,
+            max_downloads: 0,
             hash: '',
             name: '',
             size: 0
@@ -186,6 +188,8 @@ new Vue({
                 show: this.input.show?'1':'0',
                 ispwd: this.input.ispwd?'1':'0',
                 pwd: this.input.pwd,
+                expire_days: this.input.expire_days,
+                max_downloads: this.input.max_downloads,
             };
             var that = this;
             return new Promise((resolve, reject) => {

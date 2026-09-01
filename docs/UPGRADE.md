@@ -12,6 +12,10 @@ Open `/install/update.php` once after deployment. This creates the login rate-li
 
 All administrators and end users must sign in again after the upgrade because authentication cookies now use a new signed-token format. Existing administrator passwords are migrated to `password_hash()` on the first successful login.
 
+## Upgrade to database version 1003
+
+Open `/install/update.php` once after deploying this release. The migration adds share expiration and maximum-access fields to the file table. Existing shares remain permanent and unlimited, so their current behavior does not change.
+
 ## API callers
 
 Existing API callers continue to work after upgrade because token enforcement is initially disabled for upgraded sites. Configure an API token in the admin API settings, update callers to send `X-Api-Key` or `api_token`, then enable API-token enforcement.

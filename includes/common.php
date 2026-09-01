@@ -4,8 +4,8 @@ if(defined('IN_CRONLITE'))return;
 define('IN_CRONLITE', true);
 define('SYSTEM_ROOT', dirname(__FILE__).'/');
 define('ROOT', dirname(SYSTEM_ROOT).'/');
-define('VERSION', '1601');
-define('DB_VERSION', '1002');
+define('VERSION', '1610');
+define('DB_VERSION', '1003');
 date_default_timezone_set('Asia/Shanghai');
 $date = date("Y-m-d H:i:s");
 
@@ -57,6 +57,9 @@ $sitepath = substr($scriptpath, 0, strrpos($scriptpath, '/'));
 $siteurl = (is_https() ? 'https://' : 'http://').$_SERVER['HTTP_HOST'].$sitepath.'/';
 
 $clientip=real_ip($conf['ip_type']?$conf['ip_type']:0);
+$islogin=0;
+$islogin2=0;
+$uid=0;
 if(isset($_COOKIE["admin_token"]))
 {
 	$token = pan_read_auth_token($_COOKIE['admin_token'], SYS_KEY);
@@ -72,7 +75,10 @@ if(isset($_COOKIE["user_token"]))
 		if($userrow = $DB->getRow("SELECT * FROM pre_user WHERE uid=:uid LIMIT 1", [':uid'=>intval($token['uid'])])){
 			$session = hash_hmac('sha256', $userrow['type']."\0".$userrow['openid'], SYS_KEY);
 			if(hash_equals($session, $token['sid'])) {
-				if($userrow['enable']==1) $islogin2=1;
+				if($userrow['enable']==1) {
+					$islogin2=1;
+					$uid=(int)$userrow['uid'];
+				}
 				else $_SESSION['user_block'] = true;
 			}
 		}

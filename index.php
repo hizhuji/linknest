@@ -34,6 +34,8 @@ if(isset($_GET['m']) && $_GET['m']=='mine'){
     $title = $conf['title'];
     $htext = '文件列表';
 	$conditions[] = 'hide=0';
+	$conditions[] = '(expire_at IS NULL OR expire_at > NOW())';
+	$conditions[] = '(max_downloads=0 OR count < max_downloads)';
     $link = '';
 }
 $kw = isset($_GET['kw'])?trim(strip_tags($_GET['kw'])):null;

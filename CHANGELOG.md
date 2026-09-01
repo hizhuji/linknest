@@ -1,5 +1,11 @@
 # CHANGELOG
 
+### V6.1.0
+
+1. Added configurable share expiry and maximum access counts for web uploads and the upload API.
+2. Enforced access policies consistently across downloads, previews, and embedded players.
+3. Added owner renewal controls, administrator editing, and password checks for direct preview links.
+
 ### V6.0.1
 
 1. Rebuilt the public file-list homepage as a responsive workspace with streamlined navigation, search, upload entry, empty state, and pagination.

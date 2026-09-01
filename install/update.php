@@ -32,7 +32,7 @@ if($rs = $db->query("SELECT v FROM pre_config WHERE k='version'")){
 	$version = $rs->fetchColumn();
 }
 
-if($version>=1002){
+if($version>=1003){
 	exit('你的网站已经升级到最新版本了');
 }
 $sqls = [];
@@ -45,6 +45,10 @@ if($version<1001){
 if($version<1002){
 	$sqls = array_merge($sqls, explode(';', file_get_contents('update_1002.sql')));
 	$sqls[]="REPLACE INTO `pre_config` VALUES ('version', '1002')";
+}
+if($version<1003){
+	$sqls = array_merge($sqls, explode(';', file_get_contents('update_1003.sql')));
+	$sqls[]="REPLACE INTO `pre_config` VALUES ('version', '1003')";
 }
 $success=0;$error=0;$errorMsg=null;
 foreach ($sqls as $value) {

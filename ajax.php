@@ -24,6 +24,9 @@ case 'pre_upload':
 	$hide = $_POST['show']==1?0:1;
 	$ispwd = intval($_POST['ispwd']);
 	$pwd = $ispwd==1?trim(htmlspecialchars($_POST['pwd'])):null;
+	$expire_days = pan_normalize_expire_days(isset($_POST['expire_days']) ? $_POST['expire_days'] : 0);
+	$expire_at = pan_expire_at_from_days($expire_days);
+	$max_downloads = pan_normalize_max_downloads(isset($_POST['max_downloads']) ? $_POST['max_downloads'] : 0);
 	$name = str_replace(['/','\\',':','*','"','<','>','|','?'],'',$name);
 	if(empty($name))exit('{"code":-1,"msg":"文件名不能为空"}');
 	if(!preg_match('/^[0-9a-z]{32}$/i', $hash))exit('{"code":-1,"msg":"hash error"}');
@@ -79,7 +82,9 @@ case 'pre_upload':
 			'size' => $size,
 			'ext' => $ext,
 			'hide' => $hide,
-			'pwd' => $pwd
+			'pwd' => $pwd,
+			'expire_at' => $expire_at,
+			'max_downloads' => $max_downloads
 		];
 		$result = ['code'=>0, 'third'=>true, 'hash'=>$hash, 'url'=>$param['url'], 'post'=>$param['post']];
 		exit(json_encode($result));
@@ -93,7 +98,9 @@ case 'pre_upload':
 			'size' => $size,
 			'ext' => $ext,
 			'hide' => $hide,
-			'pwd' => $pwd
+			'pwd' => $pwd,
+			'expire_at' => $expire_at,
+			'max_downloads' => $max_downloads
 		];
 		$result = ['code'=>0, 'third'=>false, 'hash'=>$hash, 'chunksize'=>$chunksize, 'chunks'=>$chunks];
 		exit(json_encode($result));
@@ -145,6 +152,8 @@ case 'upload_part':
 	$name = $_SESSION['upload']['name'];
 	$hide = $_SESSION['upload']['hide'];
 	$pwd = $_SESSION['upload']['pwd'];
+	$expire_at = $_SESSION['upload']['expire_at'];
+	$max_downloads = intval($_SESSION['upload']['max_downloads']);
 
 	$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
 	if($row){
@@ -154,7 +163,7 @@ case 'upload_part':
 		exit(json_encode($result));
 	}
 
-	$sds = $DB->exec("INSERT INTO `pre_file` (`name`,`type`,`size`,`hash`,`addtime`,`ip`,`hide`,`pwd`,`uid`) values (:name,:type,:size,:hash,NOW(),:ip,:hide,:pwd,:uid)", [':name'=>$name, ':type'=>$ext, ':size'=>$size, ':hash'=>$hash, ':ip'=>$clientip, ':hide'=>$hide, ':pwd'=>$pwd, ':uid'=>($uid?$uid:0)]);
+	$sds = $DB->exec("INSERT INTO `pre_file` (`name`,`type`,`size`,`hash`,`addtime`,`ip`,`hide`,`pwd`,`expire_at`,`max_downloads`,`uid`) values (:name,:type,:size,:hash,NOW(),:ip,:hide,:pwd,:expire_at,:max_downloads,:uid)", [':name'=>$name, ':type'=>$ext, ':size'=>$size, ':hash'=>$hash, ':ip'=>$clientip, ':hide'=>$hide, ':pwd'=>$pwd, ':expire_at'=>$expire_at, ':max_downloads'=>$max_downloads, ':uid'=>($uid?$uid:0)]);
 	if(!$sds)exit('{"code":-1,"msg":"上传失败'.$DB->error().'","error":"database"}');
 	$id = $DB->lastInsertId();
 
@@ -194,6 +203,8 @@ case 'complete_upload':
 	$ext = $_SESSION['upload']['ext'];
 	$hide = $_SESSION['upload']['hide'];
 	$pwd = $_SESSION['upload']['pwd'];
+	$expire_at = $_SESSION['upload']['expire_at'];
+	$max_downloads = intval($_SESSION['upload']['max_downloads']);
 
 	$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
 	if($row){
@@ -203,7 +214,7 @@ case 'complete_upload':
 		exit(json_encode($result));
 	}
 
-	$sds = $DB->exec("INSERT INTO `pre_file` (`name`,`type`,`size`,`hash`,`addtime`,`ip`,`hide`,`pwd`,`uid`) values (:name,:type,:size,:hash,NOW(),:ip,:hide,:pwd,:uid)", [':name'=>$name, ':type'=>$ext, ':size'=>$size, ':hash'=>$hash, ':ip'=>$clientip, ':hide'=>$hide, ':pwd'=>$pwd, ':uid'=>($uid?$uid:0)]);
+	$sds = $DB->exec("INSERT INTO `pre_file` (`name`,`type`,`size`,`hash`,`addtime`,`ip`,`hide`,`pwd`,`expire_at`,`max_downloads`,`uid`) values (:name,:type,:size,:hash,NOW(),:ip,:hide,:pwd,:expire_at,:max_downloads,:uid)", [':name'=>$name, ':type'=>$ext, ':size'=>$size, ':hash'=>$hash, ':ip'=>$clientip, ':hide'=>$hide, ':pwd'=>$pwd, ':expire_at'=>$expire_at, ':max_downloads'=>$max_downloads, ':uid'=>($uid?$uid:0)]);
 	if(!$sds)exit('{"code":-1,"msg":"上传失败'.$DB->error().'","error":"database"}');
 	$id = $DB->lastInsertId();
 
@@ -238,6 +249,21 @@ case 'deleteFile':
 	$sql = "DELETE FROM pre_file WHERE id=:id";
 	if($DB->exec($sql, [':id'=>$row['id']]))exit('{"code":0,"msg":"删除文件成功！"}');
 	else exit('{"code":-1,"msg":"删除文件失败['.$DB->error().']"}');
+break;
+
+case 'updateAccessPolicy':
+	$hash = isset($_POST['hash'])?trim($_POST['hash']):exit('{"code":-1,"msg":"no hash"}');
+	require_csrf_token();
+	if(!preg_match('/^[0-9a-z]{32}$/i', $hash))exit('{"code":-1,"msg":"hash error"}');
+	$row = $DB->getRow("SELECT * FROM `pre_file` WHERE `hash`=:hash", [':hash'=>$hash]);
+	if(!$row)exit('{"code":-1,"msg":"文件不存在"}');
+	if(($islogin2 && $row['uid']!=$uid) || (!$islogin2 && (!isset($_SESSION['fileids']) || !in_array($row['id'], $_SESSION['fileids']))))exit('{"code":-1,"msg":"无权限"}');
+	$expire_days = pan_normalize_expire_days(isset($_POST['expire_days']) ? $_POST['expire_days'] : 0);
+	$expire_at = pan_expire_at_from_days($expire_days);
+	$max_downloads = pan_normalize_max_downloads(isset($_POST['max_downloads']) ? $_POST['max_downloads'] : 0);
+	$result = $DB->exec("UPDATE `pre_file` SET `expire_at`=:expire_at,`max_downloads`=:max_downloads WHERE `id`=:id", [':expire_at'=>$expire_at, ':max_downloads'=>$max_downloads, ':id'=>$row['id']]);
+	if($result!==false)exit('{"code":0,"msg":"分享策略已更新"}');
+	else exit('{"code":-1,"msg":"分享策略更新失败"}');
 break;
 
 default:

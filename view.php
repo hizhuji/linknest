@@ -26,11 +26,23 @@ if($row['block']>=1){
     readfile(ROOT.'assets/img/block.gif');
     exit;
 }
+$access_error = pan_file_access_error($row);
+if($access_error){
+    http_response_code(410);
+    exit(pan_file_access_message($access_error));
+}
+if($row['pwd']!=null && $row['pwd']!=$pwd){
+    http_response_code(403);
+    exit('Password required');
+}
 
 if ($stor->exists($row['hash'])) {
     if(is_view($row['type']))
     {
-        $DB->exec("UPDATE `pre_file` SET `lasttime`=NOW(),`count`=`count`+1 WHERE `id`='{$row['id']}'");
+        if(!pan_record_file_access($DB, $row)){
+            http_response_code(410);
+            exit(pan_file_access_message('limit'));
+        }
 
         file_output($hash, $row['type'], $row['size'], $row['name'], true, isset($_GET['greencheck']));
     }

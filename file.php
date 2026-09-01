@@ -1,34 +1,44 @@
 <?php
 include("./includes/common.php");
 
+$hash = isset($_GET['hash'])?$_GET['hash']:exit("<script language='javascript'>window.location.href='./';</script>");
+$pwd = isset($_GET['pwd'])?$_GET['pwd']:null;
+$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
+if(!$row)exit("<script language='javascript'>alert('文件不存在');window.location.href='./';</script>");
+$is_mine = false;
+if(($islogin2 && $row['uid']==$uid) || (!$islogin2 && isset($_SESSION['fileids']) && in_array($row['id'], $_SESSION['fileids']) && strtotime($row['addtime'])>strtotime("-7 days"))){
+  $is_mine = true;
+}
+$access_error = pan_file_access_error($row);
+if($access_error && !$is_mine && !$islogin){
+  http_response_code(410);
+  sysmsg(pan_file_access_message($access_error), '分享不可用');
+}
+
 $title = '文件查看 - '.$conf['title'];
 $is_file=true;
 include SYSTEM_ROOT.'header.php';
 
 $csrf_token = pan_csrf_token();
-
-$hash = isset($_GET['hash'])?$_GET['hash']:exit("<script language='javascript'>window.location.href='./';</script>");
-$pwd = isset($_GET['pwd'])?$_GET['pwd']:null;
-$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
-if(!$row)exit("<script language='javascript'>alert('文件不存在');window.location.href='./';</script>");
 $name = $row['name'];
 $type = $row['type'];
 
 $downurl = 'down.php/'.$row['hash'].'.'.$type;
 if(!empty($row['pwd']))$downurl .= '&'.$row['pwd'];
 $viewurl = 'view.php/'.$row['hash'].'.'.$type;
+if(!empty($row['pwd']))$viewurl .= '&'.$row['pwd'];
 
 $downurl_all = $siteurl.$downurl;
 $viewurl_all = $siteurl.$viewurl;
+$playerurl_all = $siteurl.'player.php?hash='.rawurlencode($hash);
+if(!empty($pwd))$playerurl_all .= '&pwd='.rawurlencode($pwd);
 
 $thisurl = $siteurl.'file.php?hash='.$row['hash'];
-if(!empty($pwd))$thisurl .= '&pwd='.$pwd;
-
-if($islogin2 && $row['uid']==$uid || !$islogin2 && isset($_SESSION['fileids']) && in_array($row['id'], $_SESSION['fileids']) && strtotime($row['addtime'])>strtotime("-7 days")){
-  $is_mine = true;
-}
+if(!empty($pwd))$thisurl .= '&pwd='.rawurlencode($pwd);
 
 $view_type = get_view_type($type);
+$expire_text = empty($row['expire_at']) ? '永久有效' : $row['expire_at'];
+$max_downloads_text = intval($row['max_downloads']) > 0 ? intval($row['max_downloads']).' 次' : '不限次数';
 
 if($view_type == 'image'){
   $filetype = 1;
@@ -40,7 +50,7 @@ if($view_type == 'image'){
   $filetype = 2;
   $title = '<i class="fa fa-music"></i> 音乐播放器';
   $htmlcode = htmlspecialchars('<audio id="bgmMusic" src="'.$viewurl_all.'" autoplay="autoplay" loop="loop" preload="auto"></audio>');
-  $htmlcode2 = htmlspecialchars('<iframe src="'.$siteurl.'player.php?hash='.$hash.'" width="407" scrolling="no"frameborder="0"height="70"></iframe>');
+  $htmlcode2 = htmlspecialchars('<iframe src="'.$playerurl_all.'" width="407" scrolling="no" frameborder="0" height="70"></iframe>');
   $ubbcode = '[audio=X]'.$viewurl_all.'[/audio]';
   $linktitle = '音乐链接';
 }elseif($view_type == 'video'){
@@ -48,7 +58,7 @@ if($view_type == 'image'){
   $title = '<i class="fa fa-video-camera"></i> 视频播放器';
   $htmlcode = htmlspecialchars('<video id="movies" src="'.$viewurl_all.'" autobuffer="true" controls="" width="100
   %"></video>');
-  $htmlcode2 = htmlspecialchars('<iframe src="'.$siteurl.'player.php?hash='.$hash.'" width="800" height="500" scrolling="no" frameborder="0"></iframe>');
+  $htmlcode2 = htmlspecialchars('<iframe src="'.$playerurl_all.'" width="800" height="500" scrolling="no" frameborder="0"></iframe>');
   $ubbcode = '[movie=320*180]'.$viewurl_all.'[/movie]';
   $linktitle = '视频链接';
 }else{
@@ -87,7 +97,9 @@ if($row['pwd']!=null && $row['pwd']!=$pwd){ ?>
 </div>
 <div class="panel-body" align="center">
 <?php
-if($filetype==1){
+if($access_error){
+  echo '<div class="view"><div class="elseview"><div class="tubiao"><i class="fa fa-clock-o"></i></div></div><div class="elsetext"><p>'.htmlspecialchars(pan_file_access_message($access_error), ENT_QUOTES, 'UTF-8').'</p><p>你可以在下方管理区域重新设置有效期或访问次数。</p></div></div>';
+}elseif($filetype==1){
   echo '<div class="image_view"><a href="'.$viewurl.'" title="点击查看原图"><img alt="loading" src="'.$viewurl.'" class="image"></a></div>';
 }elseif($filetype==2){
   echo '<div class="view"><div id="aplayer"></div></div>';
@@ -193,8 +205,12 @@ if($filetype==1){
                                   <th width="100">上传时间：</td><td width="168"><?php echo $row['addtime']?></td>
                               </tr>
                               <tr>
-                                  <th>下载次数：</td><td><?php echo $row['count']?></td>
+                                  <th>访问次数：</td><td><?php echo $row['count']?></td>
                                   <th>文件大小：</td><td><?php echo size_format($row['size']).' ('.$row['size'].' 字节)'?></td>
+                              </tr>
+                              <tr>
+                                  <th>有效期至：</td><td><?php echo htmlspecialchars($expire_text, ENT_QUOTES, 'UTF-8')?></td>
+                                  <th>访问上限：</td><td><?php echo htmlspecialchars($max_downloads_text, ENT_QUOTES, 'UTF-8')?></td>
                               </tr>
                           </table>
                       </div>
@@ -204,6 +220,23 @@ if($filetype==1){
                           <div class="col-md-12">
                             <input type="hidden" id="hash" name="hash" value="<?php echo $hash?>">
                             <input type="hidden" id="csrf_token" name="csrf_token" value="<?php echo $csrf_token?>">
+                            <div class="row" style="margin-bottom:15px;text-align:left;">
+                              <div class="col-sm-6">
+                                <label for="access_expire_days">重新设置有效期</label>
+                                <select class="form-control" id="access_expire_days">
+                                  <option value="0">永久有效</option>
+                                  <option value="1">从现在起 1 天</option>
+                                  <option value="7">从现在起 7 天</option>
+                                  <option value="30">从现在起 30 天</option>
+                                </select>
+                              </div>
+                              <div class="col-sm-6">
+                                <label for="access_max_downloads">最大访问次数</label>
+                                <input type="number" class="form-control" id="access_max_downloads" min="0" max="1000000" value="<?php echo intval($row['max_downloads'])?>">
+                                <p class="help-block">当前已访问 <?php echo intval($row['count'])?> 次，0 表示不限次数</p>
+                              </div>
+                            </div>
+                            <button onclick="update_access_policy()" class="btn btn-raised btn-primary"><i class="fa fa-clock-o" aria-hidden="true"></i> 更新分享策略</button>
                             <button onclick="delete_confirm()" class="btn btn-raised btn-danger"><i class="fa fa-close" aria-hidden="true"></i> 删除文件</button>
                           </div>
                       </div>
@@ -233,7 +266,7 @@ if($filetype==1){
     </div>
   </div>
 <?php include SYSTEM_ROOT.'footer.php';?>
-<?php if($filetype==2){?>
+<?php if(!$access_error && $filetype==2){?>
 <script type="text/javascript" src="https://s4.zstatic.net/ajax/libs/aplayer/1.10.1/APlayer.min.js"></script>
 <script type="text/javascript">
 var ap = new APlayer({
@@ -248,7 +281,7 @@ var ap = new APlayer({
   }]
 });
 </script>
-<?php }elseif($filetype==3 && $row['block']==0){?>
+<?php }elseif(!$access_error && $filetype==3 && $row['block']==0){?>
 <script type="text/javascript" src="assets/js/ckplayer.min.js"></script>
 <?php if($type=='m3u8'){$plug='hls.js';?><script src="https://s4.zstatic.net/ajax/libs/hls.js/1.2.4/hls.min.js"></script><?php }?>
 <?php if($type=='flv'||$type=='f4v'){$plug='flv.js';?><script src="https://s4.zstatic.net/ajax/libs/flv.js/1.6.2/flv.min.js"></script><?php }?>
@@ -265,6 +298,29 @@ var ap = new APlayer({
 <script src="https://s4.zstatic.net/ajax/libs/layer/2.3/layer.js"></script>
 <script src="https://s4.zstatic.net/ajax/libs/clipboard.js/1.7.1/clipboard.min.js"></script>
 <script>
+function update_access_policy(){
+  var hash = $("#hash").val();
+  var csrf_token = $("#csrf_token").val();
+  $.ajax({
+    type: 'POST',
+    url: 'ajax.php?act=updateAccessPolicy',
+    data: {
+      hash: hash,
+      csrf_token: csrf_token,
+      expire_days: $("#access_expire_days").val(),
+      max_downloads: $("#access_max_downloads").val()
+    },
+    dataType: 'json',
+    success: function(data){
+      if(data.code == 0){
+        layer.alert(data.msg, {icon:1}, function(){window.location.reload();});
+      }else{
+        layer.alert(data.msg, {icon:2});
+      }
+    },
+    error: function(){layer.msg('服务器错误');}
+  });
+}
 function delete_confirm(){
   var hash = $("#hash").val();
   var csrf_token = $("#csrf_token").val();

@@ -111,6 +111,8 @@ API接口地址：<?php echo $siteurl?>api.php
   <tr><td>是否首页显示</td><td>show</td><td>否</td><td>1</td><td>默认为是</td></tr>
   <tr><td>是否设置密码</td><td>ispwd</td><td>否</td><td>0</td><td>默认为否</td></tr>
   <tr><td>下载密码</td><td>pwd</td><td>否</td><td>123456</td><td>默认留空</td></tr>
+	<tr><td>有效期</td><td>expire_days</td><td>否</td><td>7</td><td>0 至 3650 天，0 表示永久有效</td></tr>
+	<tr><td>最大访问次数</td><td>max_downloads</td><td>否</td><td>100</td><td>下载和在线预览均计数，0 表示不限次数</td></tr>
 	<tr><td>API 密钥</td><td>api_token</td><td>取决于后台设置</td><td></td><td>开启密钥校验时必须传递，也可使用 X-Api-Key 请求头</td></tr>
   <tr><td>返回格式</td><td>format</td><td>否</td><td>json</td><td>有json、jsonp、form三种选择
 默认为json</td></tr>

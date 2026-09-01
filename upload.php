@@ -53,6 +53,22 @@ $csrf_token = pan_csrf_token();
 <input type="text" class="form-control" id="pwd" placeholder="请输入密码" autocomplete="off" v-model="input.pwd">
 <p class="help-block">密码只能为字母或数字</p>
 </div>
+<div class="access-policy">
+<div class="form-group">
+<label for="expire_days">链接有效期</label>
+<select class="form-control" id="expire_days" v-model.number="input.expire_days">
+<option :value="0">永久有效</option>
+<option :value="1">1 天</option>
+<option :value="7">7 天</option>
+<option :value="30">30 天</option>
+</select>
+</div>
+<div class="form-group">
+<label for="max_downloads">最大访问次数</label>
+<input type="number" class="form-control" id="max_downloads" min="0" max="1000000" step="1" v-model.number="input.max_downloads">
+<p class="help-block">填写 0 表示不限次数，下载和在线预览均计数</p>
+</div>
+</div>
          </div>
          
         <br><br><br><br>

@@ -22,6 +22,11 @@ if(strpos($url,".")){
 $row = $DB->getRow("SELECT * FROM `pre_file` WHERE `hash`=:hash limit 1", [':hash'=>$hash]);
 if(!$row)exit('404 Not Found');
 if($row['block']>=1)exit('File is blocked!');
+$access_error = pan_file_access_error($row);
+if($access_error){
+    http_response_code(410);
+    exit(pan_file_access_message($access_error));
+}
 
 if($row['pwd']!=null && $row['pwd']!=$pwd){ ?>
     <meta http-equiv="content-type" content="text/html;charset=utf-8"/>
@@ -40,7 +45,10 @@ if($row['pwd']!=null && $row['pwd']!=$pwd){ ?>
 
 if($stor->exists($hash))
 {
-    $DB->exec("UPDATE `pre_file` SET `lasttime`=NOW(),`count`=`count`+1 WHERE `id`='{$row['id']}'");
+    if(!pan_record_file_access($DB, $row)){
+        http_response_code(410);
+        exit(pan_file_access_message('limit'));
+    }
 
     file_output($hash, $row['type'], $row['size'], $row['name']);
 }

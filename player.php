@@ -2,12 +2,16 @@
 include("./includes/common.php");
 
 $hash = isset($_GET['hash'])?trim($_GET['hash']):exit();
+$pwd = isset($_GET['pwd'])?trim($_GET['pwd']):null;
 $row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
 if(!$row)exit('404 Not Found');
 if($row['block']!=0)exit('File is blocked!');
+if($access_error = pan_file_access_error($row))exit(pan_file_access_message($access_error));
+if($row['pwd']!=null && $row['pwd']!=$pwd)exit('Password required');
 $name = $row['name'];
 $type = $row['type'];
 $viewurl_all = $siteurl.'view.php/'.$row['hash'].'.'.$type;
+if(!empty($row['pwd']))$viewurl_all .= '&'.$row['pwd'];
 
 $view_type = get_view_type($type);
 

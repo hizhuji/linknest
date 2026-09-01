@@ -66,6 +66,20 @@ if($islogin==1){}else exit("<script language='javascript'>window.location.href='
 							<input type="text" class="form-control" name="pwd" id="pwd">
 						</div>
 					</div>
+					<div class="form-group">
+						<label class="col-sm-2 control-label no-padding-right">有效期至</label>
+						<div class="col-sm-10">
+							<input type="datetime-local" class="form-control" name="expire_at" id="expire_at">
+							<p class="help-block">留空表示永久有效</p>
+						</div>
+					</div>
+					<div class="form-group">
+						<label class="col-sm-2 control-label no-padding-right">访问上限</label>
+						<div class="col-sm-10">
+							<input type="number" class="form-control" name="max_downloads" id="max_downloads" min="0" max="1000000">
+							<p class="help-block">0 表示不限次数</p>
+						</div>
+					</div>
 				</form>
 			</div>
 			<div class="modal-footer">
@@ -92,7 +106,7 @@ if($islogin==1){}else exit("<script language='javascript'>window.location.href='
 			<select id="dstatus" name="dstatus" class="form-control"><option value="-1">全部状态</option><option value="0">正常文件</option><option value="1">已屏蔽文件</option><option value="2">待审核文件</option></select>
 		    </div>
 			<div class="form-group">
-			<select id="orderby" name="orderby" class="form-control"><option value="0">默认排序</option><option value="1">按下载量排序</option></select>
+			<select id="orderby" name="orderby" class="form-control"><option value="0">默认排序</option><option value="1">按访问量排序</option></select>
 		    </div>
 			<div class="form-group">
 				<button class="btn btn-primary" type="submit"><i class="fa fa-search"></i> 搜索</button>
@@ -170,14 +184,23 @@ $(document).ready(function(){
 			},
 			{
 				field: 'addtime',
-				title: '上传日期/上次下载',
+				title: '上传日期/上次访问',
 				formatter: function(value, row, index) {
 					return value + '<br/>' + row.lasttime;
 				}
 			},
 			{
+				field: 'expire_at',
+				title: '分享策略',
+				formatter: function(value, row, index) {
+					var expiry = value ? value : '永久有效';
+					var limit = parseInt(row.max_downloads) > 0 ? row.count + ' / ' + row.max_downloads + ' 次' : row.count + ' / 不限';
+					return expiry + '<br/>' + limit;
+				}
+			},
+			{
 				field: 'ip',
-				title: '上传IP/下载量',
+				title: '上传IP/访问量',
 				formatter: function(value, row, index) {
 					return '<a href="https://m.ip138.com/iplookup.asp?ip='+value+'" target="_blank" rel="noreferrer">'+value+'</a><br/><b>'+row.count+'</b>';
 				}
@@ -244,6 +267,8 @@ function editframe(id){
 				$("#form-store #size").val(data.size2+" ("+data.size+" 字节)");
 				$("#form-store #hash").val(data.hash);
 				$("#form-store #hide").val(data.hide);
+				$("#form-store #expire_at").val(data.expire_at ? data.expire_at.replace(' ', 'T').substring(0, 16) : '');
+				$("#form-store #max_downloads").val(data.max_downloads || 0);
 				if(data.pwd==null||data.pwd==""){
 					$("#form-store #ispwd").val(0);
 					$("#form-store #pwd").val("");
