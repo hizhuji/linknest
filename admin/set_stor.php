@@ -16,7 +16,7 @@ if($islogin==1){}else exit("<script language='javascript'>window.location.href='
 			<form onsubmit="return saveSetting(this)" method="post" class="form-horizontal" role="form">
 				<div class="form-group">
 					<label class="col-sm-3 control-label">切换存储类型</label>
-					<div class="col-sm-9"><select class="form-control" name="storage" default="<?php echo $conf['storage']?>"><option value="local">本地存储</option><option value="oss">阿里云OSS</option><option value="qcloud">腾讯云COS</option><option value="obs">华为云OBS</option><option value="upyun">又拍云</option><option value="qiniu">七牛云</option><?php if (defined('SAE_ACCESSKEY')) {?><option value="sae">SaeStorage</option><?php }?></select><font color="green">已有文件的情况下请勿随意变更，否则之前上传的文件全部无法下载</font></div>
+					<div class="col-sm-9"><select class="form-control" name="storage" default="<?php echo $conf['storage']?>"><option value="local">本地存储</option><option value="webdav">WebDAV 挂载网盘</option><option value="oss">阿里云OSS</option><option value="qcloud">腾讯云COS</option><option value="obs">华为云OBS</option><option value="upyun">又拍云</option><option value="qiniu">七牛云</option><?php if (defined('SAE_ACCESSKEY')) {?><option value="sae">SaeStorage</option><?php }?></select><font color="green">已有文件的情况下请勿随意变更，否则之前上传的文件全部无法下载</font></div>
 				</div><br/>
 				<div id="cloud_stor" style="display:none;">
 				<div class="form-group">
@@ -73,6 +73,40 @@ if($islogin==1){}else exit("<script language='javascript'>window.location.href='
 					</div>
 				</div>
 			</form>
+		</div>
+		</div>
+	</div>
+
+	<div class="panel panel-info">
+		<div class="panel-heading"><h3 class="panel-title"><a data-toggle="collapse" data-parent="#accordion" href="#stor_webdav" class="collapsed">WebDAV 挂载网盘</a></h3></div>
+		<div id="stor_webdav" class="panel-collapse collapse">
+		<div class="panel-body">
+			<form onsubmit="return saveSetting(this)" method="post" class="form-horizontal" role="form">
+				<div class="form-group">
+					<label class="col-sm-3 control-label">WebDAV 地址</label>
+					<div class="col-sm-9"><input type="url" name="webdav_endpoint" value="<?php echo htmlspecialchars(isset($conf['webdav_endpoint'])?$conf['webdav_endpoint']:'', ENT_QUOTES, 'UTF-8'); ?>" class="form-control" placeholder="https://example.com/dav"/><font color="green">填写服务提供的 WebDAV 根地址，支持 AList、Nextcloud 等。</font></div>
+				</div><br/>
+				<div class="form-group">
+					<label class="col-sm-3 control-label">用户名</label>
+					<div class="col-sm-9"><input type="text" name="webdav_username" value="<?php echo htmlspecialchars(isset($conf['webdav_username'])?$conf['webdav_username']:'', ENT_QUOTES, 'UTF-8'); ?>" class="form-control" autocomplete="off"/></div>
+				</div><br/>
+				<div class="form-group">
+					<label class="col-sm-3 control-label">密码/应用密码</label>
+					<div class="col-sm-9"><input type="password" name="webdav_password" value="<?php echo htmlspecialchars(isset($conf['webdav_password'])?$conf['webdav_password']:'', ENT_QUOTES, 'UTF-8'); ?>" class="form-control" autocomplete="new-password"/></div>
+				</div><br/>
+				<div class="form-group">
+					<label class="col-sm-3 control-label">挂载目录</label>
+					<div class="col-sm-9"><input type="text" name="webdav_root" value="<?php echo htmlspecialchars(isset($conf['webdav_root'])?$conf['webdav_root']:'', ENT_QUOTES, 'UTF-8'); ?>" class="form-control" placeholder="pan-storage"/><font color="green">程序会在该目录下自动创建 file 文件夹；留空则直接使用 WebDAV 根目录。</font></div>
+				</div><br/>
+				<div class="form-group">
+					<label class="col-sm-3 control-label">公开下载地址</label>
+					<div class="col-sm-9"><input type="url" name="webdav_public_url" value="<?php echo htmlspecialchars(isset($conf['webdav_public_url'])?$conf['webdav_public_url']:'', ENT_QUOTES, 'UTF-8'); ?>" class="form-control" placeholder="可选，例如 https://download.example.com/pan-storage"/><font color="green">仅当该地址无需登录即可访问时填写；留空使用本站中转下载。</font></div>
+				</div><br/>
+				<div class="form-group">
+					<div class="col-sm-offset-3 col-sm-9"><input type="submit" name="submit" value="保存 WebDAV 设置" class="btn btn-primary btn-block"/></div>
+				</div>
+			</form>
+			<div class="alert alert-info">Google Drive、OneDrive、阿里云盘等没有原生 WebDAV 的服务，可先挂载到 AList，再把 AList 的 WebDAV 地址填到这里。WebDAV 上传始终由本站服务器中转。</div>
 		</div>
 		</div>
 	</div>
@@ -266,6 +300,11 @@ $("select[name='storage']").change(function(){
 		$("#cloud_stor").hide();
 	}else{
 		$("#cloud_stor").show();
+	}
+	if($(this).val() == 'webdav'){
+		$("select[name='uploadfile_type']").val('0').prop('disabled', true);
+	}else{
+		$("select[name='uploadfile_type']").prop('disabled', false);
 	}
 });
 $("select[name='storage']").change();

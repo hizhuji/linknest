@@ -31,6 +31,18 @@ case 'set':
 		if($site_url === false)exit('{"code":-1,"msg":"站点外链地址格式不正确"}');
 		$_POST['site_url'] = $site_url;
 	}
+	foreach(['webdav_endpoint', 'webdav_public_url'] as $urlKey){
+		if(isset($_POST[$urlKey])){
+			$_POST[$urlKey] = rtrim(trim($_POST[$urlKey]), '/');
+			if($_POST[$urlKey] !== ''){
+				$scheme = strtolower((string)parse_url($_POST[$urlKey], PHP_URL_SCHEME));
+				if(!filter_var($_POST[$urlKey], FILTER_VALIDATE_URL) || !in_array($scheme, ['http', 'https'], true)){
+					exit(json_encode(['code'=>-1, 'msg'=>'WebDAV 地址格式不正确']));
+				}
+			}
+		}
+	}
+	if(isset($_POST['webdav_root'])) $_POST['webdav_root'] = trim(str_replace('\\', '/', $_POST['webdav_root']), '/');
 	if(isset($_POST['green_label_porn'])){
 		$_POST['green_label_porn'] = implode(',',$_POST['green_label_porn']);
 	}
@@ -53,7 +65,7 @@ break;
 case 'userList':
 	$conditions=['1=1'];
 	$params=[];
-	$type_arr = ['qq'=>'QQ','wx'=>'微信'];
+	$type_arr = ['qq'=>'QQ','wx'=>'微信','google'=>'Google','apple'=>'Apple'];
 	if(isset($_POST['dstatus']) && $_POST['dstatus']>-1) {
 		$dstatus = intval($_POST['dstatus']);
 		$conditions[]='`enable`=:enable';
@@ -83,7 +95,7 @@ case 'userList':
 	$list = $DB->getAll("SELECT * FROM pre_user WHERE {$sql} order by uid desc limit $offset,$limit", $params);
 	$list2 = [];
 	foreach($list as $row){
-		$row['type'] = $type_arr[$row['type']];
+		$row['type'] = isset($type_arr[$row['type']]) ? $type_arr[$row['type']] : $row['type'];
 		$list2[] = $row;
 	}
 

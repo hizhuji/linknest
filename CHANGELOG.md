@@ -1,5 +1,12 @@
 # CHANGELOG
 
+### V6.4.0
+
+1. Replaced the hard-coded administrator brand with the website title configured in the dashboard.
+2. Added direct Google OAuth 2.0 and Sign in with Apple user login alongside the existing QQ and WeChat providers.
+3. Added WebDAV storage for mounting AList, Nextcloud, and other WebDAV-compatible cloud drives.
+4. Added separate direct-upload and direct-download capability checks so WebDAV safely uses server-side transfer unless a public download URL is configured.
+
 ### V6.3.0
 
 1. Added a maintenance-repository-backed online updater to the administrator dashboard.

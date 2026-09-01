@@ -1,7 +1,7 @@
 <?php
 define('IN_ADMIN', true);
 include("../includes/common.php");
-$title='彩虹外链网盘管理中心';
+$title=(isset($conf['title']) && $conf['title'] !== '' ? $conf['title'] : '网站').' - 管理中心';
 include './head.php';
 if($islogin==1){}else exit("<script language='javascript'>window.location.href='./login.php';</script>");
 ?>

@@ -17,6 +17,11 @@ INSERT INTO `pre_config` VALUES ('iptype', '0');
 INSERT INTO `pre_config` VALUES ('filesearch', '1');
 INSERT INTO `pre_config` VALUES ('storage', 'local');
 INSERT INTO `pre_config` VALUES ('filepath', '');
+INSERT INTO `pre_config` VALUES ('webdav_endpoint', '');
+INSERT INTO `pre_config` VALUES ('webdav_username', '');
+INSERT INTO `pre_config` VALUES ('webdav_password', '');
+INSERT INTO `pre_config` VALUES ('webdav_root', '');
+INSERT INTO `pre_config` VALUES ('webdav_public_url', '');
 INSERT INTO `pre_config` VALUES ('aliyun_ak', '');
 INSERT INTO `pre_config` VALUES ('aliyun_sk', '');
 INSERT INTO `pre_config` VALUES ('name_block', '');
@@ -34,6 +39,14 @@ INSERT INTO `pre_config` VALUES ('gg_file', '网站所有文件内容均由用�
 INSERT INTO `pre_config` VALUES ('api_open', '0');
 INSERT INTO `pre_config` VALUES ('api_token', '');
 INSERT INTO `pre_config` VALUES ('api_require_token', '1');
+INSERT INTO `pre_config` VALUES ('login_google', '0');
+INSERT INTO `pre_config` VALUES ('google_client_id', '');
+INSERT INTO `pre_config` VALUES ('google_client_secret', '');
+INSERT INTO `pre_config` VALUES ('login_apple', '0');
+INSERT INTO `pre_config` VALUES ('apple_client_id', '');
+INSERT INTO `pre_config` VALUES ('apple_team_id', '');
+INSERT INTO `pre_config` VALUES ('apple_key_id', '');
+INSERT INTO `pre_config` VALUES ('apple_private_key', '');
 
 DROP TABLE IF EXISTS `pre_file`;
 CREATE TABLE `pre_file` (

@@ -629,7 +629,7 @@ function file_output($hash, $type, $size, $name, $is_view = false, $is_admin = f
 
 	$filename = '"'.$name.'"; filename*=utf-8\'\''.rawurlencode($name);
 
-	if(\lib\StorHelper::is_cloud() && $conf['downfile_type'] == 1){
+	if(\lib\StorHelper::supports_direct_download() && $conf['downfile_type'] == 1){
 		$redirect = $stor->getDownUrl($hash, $name, $is_view ? minetype($type) : null);
 		if($redirect){
 			header("Location: ".$redirect);

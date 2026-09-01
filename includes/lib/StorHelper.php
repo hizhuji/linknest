@@ -26,6 +26,14 @@ class StorHelper
                 return ['operatorName' => $conf['upyun_user'], 'operatorPwd' => $conf['upyun_pwd'], 'serviceName' => $conf['upyun_name']];
             case 'qiniu':
                 return ['accessKey' => $conf['qiniu_ak'], 'secretKey' => $conf['qiniu_sk'], 'bucket' => $conf['qiniu_bucket'], 'domain' => $conf['qiniu_domain']];
+            case 'webdav':
+                return [
+                    'endpoint' => isset($conf['webdav_endpoint']) ? $conf['webdav_endpoint'] : '',
+                    'username' => isset($conf['webdav_username']) ? $conf['webdav_username'] : '',
+                    'password' => isset($conf['webdav_password']) ? $conf['webdav_password'] : '',
+                    'root' => isset($conf['webdav_root']) ? $conf['webdav_root'] : '',
+                    'publicUrl' => isset($conf['webdav_public_url']) ? $conf['webdav_public_url'] : '',
+                ];
             default:
                 break;
         }
@@ -46,15 +54,26 @@ class StorHelper
     public static function is_cloud(){
         global $conf;
         $is_cloud = false;
-        if(in_array($conf['storage'], ['oss','qcloud','obs','upyun','qiniu'])) $is_cloud = true;
+        if(in_array($conf['storage'], ['oss','qcloud','obs','upyun','qiniu','webdav'])) $is_cloud = true;
         return $is_cloud;
+    }
+
+    public static function supports_direct_upload(){
+        global $conf;
+        return in_array($conf['storage'], ['oss','qcloud','obs','upyun','qiniu']);
+    }
+
+    public static function supports_direct_download(){
+        global $conf;
+        if($conf['storage'] === 'webdav') return !empty($conf['webdav_public_url']);
+        return in_array($conf['storage'], ['oss','qcloud','obs','upyun','qiniu']);
     }
 
     //判断是否可以断点续传
     public static function is_range(){
         global $conf;
         $is_range = false;
-        if(in_array($conf['storage'], ['local','oss','qcloud','obs','qiniu'])) $is_range = true;
+        if(in_array($conf['storage'], ['local','oss','qcloud','obs','qiniu','webdav'])) $is_range = true;
         return $is_range;
     }
 }

@@ -310,9 +310,49 @@ $(document).ready(function(){
 	  <div class="col-sm-9">
 	  <input type="hidden" name="login_qq" value="0"/>
 	  <input type="hidden" name="login_wx" value="0"/>
+	  <input type="hidden" name="login_google" value="0"/>
+	  <input type="hidden" name="login_apple" value="0"/>
 	  <label class="checkbox-inline"><input type="checkbox" name="login_qq" value="1" <?php echo $conf['login_qq']?'checked':null;?>> QQ</label>
 	  <label class="checkbox-inline"><input type="checkbox" name="login_wx" value="1" <?php echo $conf['login_wx']?'checked':null;?>> 微信</label>
+	  <label class="checkbox-inline"><input type="checkbox" name="login_google" value="1" <?php echo !empty($conf['login_google'])?'checked':null;?>> Google</label>
+	  <label class="checkbox-inline"><input type="checkbox" name="login_apple" value="1" <?php echo !empty($conf['login_apple'])?'checked':null;?>> Apple</label>
 	  </div>
+	</div><br/>
+	<hr/>
+	<h4>Google 登录</h4>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">Client ID</label>
+	  <div class="col-sm-9"><input type="text" name="google_client_id" value="<?php echo htmlspecialchars(isset($conf['google_client_id'])?$conf['google_client_id']:'', ENT_QUOTES, 'UTF-8'); ?>" class="form-control"/></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">Client Secret</label>
+	  <div class="col-sm-9"><input type="password" name="google_client_secret" value="<?php echo htmlspecialchars(isset($conf['google_client_secret'])?$conf['google_client_secret']:'', ENT_QUOTES, 'UTF-8'); ?>" class="form-control" autocomplete="new-password"/></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">Google 回调地址</label>
+	  <div class="col-sm-9"><input type="text" value="<?php echo htmlspecialchars($siteurl.'login.php?provider=google', ENT_QUOTES, 'UTF-8'); ?>" class="form-control" readonly/></div>
+	</div><br/>
+	<hr/>
+	<h4>Apple 登录</h4>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">Services ID</label>
+	  <div class="col-sm-9"><input type="text" name="apple_client_id" value="<?php echo htmlspecialchars(isset($conf['apple_client_id'])?$conf['apple_client_id']:'', ENT_QUOTES, 'UTF-8'); ?>" class="form-control"/></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">Team ID</label>
+	  <div class="col-sm-9"><input type="text" name="apple_team_id" value="<?php echo htmlspecialchars(isset($conf['apple_team_id'])?$conf['apple_team_id']:'', ENT_QUOTES, 'UTF-8'); ?>" class="form-control"/></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">Key ID</label>
+	  <div class="col-sm-9"><input type="text" name="apple_key_id" value="<?php echo htmlspecialchars(isset($conf['apple_key_id'])?$conf['apple_key_id']:'', ENT_QUOTES, 'UTF-8'); ?>" class="form-control"/></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">Apple 私钥</label>
+	  <div class="col-sm-9"><textarea name="apple_private_key" class="form-control" rows="6" autocomplete="off" placeholder="粘贴 .p8 文件完整内容"><?php echo htmlspecialchars(isset($conf['apple_private_key'])?$conf['apple_private_key']:'', ENT_QUOTES, 'UTF-8'); ?></textarea></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">Apple 回调地址</label>
+	  <div class="col-sm-9"><input type="text" value="<?php echo htmlspecialchars($siteurl.'login.php?provider=apple', ENT_QUOTES, 'UTF-8'); ?>" class="form-control" readonly/></div>
 	</div><br/>
 	<div class="form-group">
 	  <div class="col-sm-offset-3 col-sm-9"><input type="submit" name="submit" value="修改" class="btn btn-primary form-control"/><br/>
@@ -324,6 +364,7 @@ $(document).ready(function(){
 <span class="glyphicon glyphicon-info-sign"></span>
 聚合登录接口是使用<a href="https://www.clogin.cc/recommend.php" target="_blank">彩虹聚合登录系统搭建的站点</a>。<br/>
 开启后请勿随意更换登录接口站点，否则会导致之前注册的用户全部无法登录。
+Google 和 Apple 为本站直连登录，不经过聚合登录接口。请在对应开发者后台完整填写页面显示的回调地址，并确保站点已启用 HTTPS。
 </div>
 </div>
 <script>

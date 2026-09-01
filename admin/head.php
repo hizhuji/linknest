@@ -38,7 +38,7 @@
           <span class="icon-bar"></span>
           <span class="icon-bar"></span>
         </button>
-        <a class="navbar-brand" href="./">彩虹外链网盘管理中心</a>
+        <a class="navbar-brand" href="./"><?php echo htmlspecialchars(isset($conf['title']) && $conf['title'] !== '' ? $conf['title'] : '网站管理中心', ENT_QUOTES, 'UTF-8'); ?></a>
       </div><!-- /.navbar-header -->
       <div id="navbar" class="collapse navbar-collapse">
         <ul class="nav navbar-nav navbar-right">

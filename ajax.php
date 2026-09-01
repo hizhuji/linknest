@@ -72,7 +72,7 @@ case 'pre_upload':
 		exit(json_encode($result));
 	}
 
-	if(\lib\StorHelper::is_cloud() && $conf['uploadfile_type'] == 1){
+	if(\lib\StorHelper::supports_direct_upload() && $conf['uploadfile_type'] == 1){
 		$param = $stor->getUploadParam($hash, $name, $limit_size * 1024 * 1024);
 		if(!$param)exit('{"code":-1,"msg":"获取上传参数失败","errmsg":"'.$stor->errmsg().'"}');
 		$_SESSION['upload'] = [
