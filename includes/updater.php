@@ -11,6 +11,10 @@ function pan_update_allowed_url($url, $hosts) {
 	return in_array(strtolower($parts['host']), $hosts, true);
 }
 
+function pan_update_package_hosts() {
+	return ['raw.githubusercontent.com', 'codeload.github.com'];
+}
+
 function pan_update_fetch_text($url, $maxBytes = 1048576) {
 	if(!function_exists('curl_init')) throw new RuntimeException('服务器未启用 cURL 扩展');
 	if(!pan_update_allowed_url($url, ['raw.githubusercontent.com'])) throw new RuntimeException('更新清单地址不受信任');
@@ -39,7 +43,13 @@ function pan_update_validate_manifest($manifest) {
 	}
 	if(!preg_match('/^[0-9]{4,10}$/', (string)$manifest['version'])) throw new RuntimeException('更新版本号不正确');
 	if(!is_string($manifest['version_name']) || $manifest['version_name'] === '') throw new RuntimeException('更新版本名称不正确');
-	if(!pan_update_allowed_url($manifest['package_url'], ['codeload.github.com'])) throw new RuntimeException('更新包地址不受信任');
+	if(!pan_update_allowed_url($manifest['package_url'], pan_update_package_hosts())) throw new RuntimeException('更新包地址不受信任');
+	if(isset($manifest['package_urls'])){
+		if(!is_array($manifest['package_urls'])) throw new RuntimeException('更新包备用地址格式不正确');
+		foreach($manifest['package_urls'] as $packageUrl){
+			if(!pan_update_allowed_url($packageUrl, pan_update_package_hosts())) throw new RuntimeException('更新包备用地址不受信任');
+		}
+	}
 	if(!preg_match('/^[a-f0-9]{64}$/i', (string)$manifest['sha256'])) throw new RuntimeException('更新包校验值不正确');
 	if(!is_array($manifest['changelog'])) throw new RuntimeException('更新内容格式不正确');
 	$manifest['version'] = intval($manifest['version']);
@@ -58,7 +68,7 @@ function pan_update_fetch_manifest() {
 
 function pan_update_download($url, $destination, $maxBytes = 209715200) {
 	if(!function_exists('curl_init')) throw new RuntimeException('服务器未启用 cURL 扩展');
-	if(!pan_update_allowed_url($url, ['codeload.github.com'])) throw new RuntimeException('更新包地址不受信任');
+	if(!pan_update_allowed_url($url, pan_update_package_hosts())) throw new RuntimeException('更新包地址不受信任');
 	$fp = fopen($destination, 'wb');
 	if(!$fp) throw new RuntimeException('无法创建更新包临时文件');
 	$received = 0;
@@ -70,6 +80,7 @@ function pan_update_download($url, $destination, $maxBytes = 209715200) {
 	curl_setopt($ch, CURLOPT_USERAGENT, 'Pan-Updater/'.VERSION);
 	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+	if(defined('CURL_SSLVERSION_TLSv1_2')) curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
 	curl_setopt($ch, CURLOPT_WRITEFUNCTION, function($ch, $data) use ($fp, $maxBytes, &$received, &$tooLarge) {
 		$length = strlen($data);
 		$received += $length;
@@ -93,6 +104,21 @@ function pan_update_download($url, $destination, $maxBytes = 209715200) {
 		throw new RuntimeException('下载更新包失败'.($error ? '：'.$error : ''));
 	}
 	return $received;
+}
+
+function pan_update_download_package($manifest, $destination) {
+	$urls = [$manifest['package_url']];
+	if(!empty($manifest['package_urls'])) $urls = array_merge($urls, $manifest['package_urls']);
+	$urls = array_values(array_unique($urls));
+	$errors = [];
+	foreach($urls as $url){
+		try{
+			return pan_update_download($url, $destination);
+		}catch(Throwable $e){
+			$errors[] = parse_url($url, PHP_URL_HOST).'：'.$e->getMessage();
+		}
+	}
+	throw new RuntimeException('所有更新包下载地址均不可用（'.implode('；', $errors).'）');
 }
 
 function pan_update_safe_archive($zip) {
@@ -227,7 +253,7 @@ function pan_update_install($manifest) {
 	if(!mkdir($workDir, 0755, true)) throw new RuntimeException('无法创建本次更新目录');
 	try{
 		$packageFile = $workDir.'/package.zip';
-		pan_update_download($manifest['package_url'], $packageFile);
+		pan_update_download_package($manifest, $packageFile);
 		if(!hash_equals($manifest['sha256'], strtolower(hash_file('sha256', $packageFile)))) throw new RuntimeException('更新包完整性校验失败');
 		$zip = new ZipArchive();
 		if($zip->open($packageFile) !== true) throw new RuntimeException('无法打开更新包');
@@ -257,4 +283,3 @@ function pan_update_install($manifest) {
 		fclose($lockHandle);
 	}
 }
-

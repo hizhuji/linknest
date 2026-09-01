@@ -1,5 +1,11 @@
 # CHANGELOG
 
+### V6.4.1
+
+1. Added a raw GitHub update-package source for servers that cannot negotiate TLS with `codeload.github.com`.
+2. Added trusted fallback package URLs and automatic retry across update sources.
+3. Forced TLS 1.2 for package downloads when supported by the installed cURL library.
+
 ### V6.4.0
 
 1. Replaced the hard-coded administrator brand with the website title configured in the dashboard.

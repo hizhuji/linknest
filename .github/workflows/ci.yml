@@ -29,3 +29,5 @@ jobs:
         run: php tests/security_test.php
       - name: Run native OAuth tests
         run: php tests/native_oauth_test.php
+      - name: Run updater tests
+        run: php tests/updater_test.php
