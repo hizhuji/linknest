@@ -15,6 +15,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="format-detection" content="telephone=no">
   <!-- Bootstrap Material Design -->
+  <link rel="icon" href="favicon.ico">
   <link href="https://s4.zstatic.net/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
   <link href="https://s4.zstatic.net/ajax/libs/twitter-bootstrap/3.4.1/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://s4.zstatic.net/ajax/libs/bootstrap-material-design/0.5.10/css/bootstrap-material-design.min.css" rel="stylesheet">
@@ -29,7 +30,7 @@
 </head>
 <body>
 
-  <div class="navbar navbar-default">
+  <div class="navbar navbar-default app-navbar">
       <div class="container">
         <div class="navbar-header">
           <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
@@ -37,12 +38,15 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="./"><?php echo $conf['title']?></a>
+          <a class="navbar-brand" href="./">
+            <img class="brand-mark" src="favicon.ico" alt="">
+            <span><?php echo $conf['title']?></span>
+          </a>
         </div>
         <div class="navbar-collapse collapse navbar-responsive-collapse">
           <ul class="nav navbar-nav">
-            <li class="<?php echo checkIfActive('index,')?>"><a href="./"><i class="fa fa-list" aria-hidden="true"></i> 文件列表</a></li>
-            <li class="<?php echo checkIfActive('upload')?>"><a href="./upload.php"><i class="fa fa-upload" aria-hidden="true"></i> 上传文件</a></li>
+            <li class="<?php echo checkIfActive('index,')?>"><a href="./"><i class="fa fa-folder-open-o" aria-hidden="true"></i> 文件</a></li>
+            <li class="<?php echo checkIfActive('upload')?>"><a class="nav-upload-link" href="./upload.php"><i class="fa fa-arrow-up" aria-hidden="true"></i> 上传</a></li>
             <?php if($is_file){?>
             <li class="<?php echo checkIfActive('file')?>"><a href=""><i class="fa fa-file" aria-hidden="true"></i> 文件查看</a></li>
             <?php }?>

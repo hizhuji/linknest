@@ -1,5 +1,9 @@
 # CHANGELOG
 
+### V6.0.1
+
+1. Rebuilt the public file-list homepage as a responsive workspace with streamlined navigation, search, upload entry, empty state, and pagination.
+
 ### V6.0.0
 
 1. Community-maintained baseline created from upstream `a4e5a43`.

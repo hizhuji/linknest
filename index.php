@@ -43,21 +43,38 @@ if($conf['filesearch']==1 && $kw){
     $link .= '&kw='.rawurlencode($kw);
 }
 $sql = implode(' AND ', $conditions);
+$numrows=$DB->getColumn("SELECT count(*) from pre_file WHERE {$sql}", $params);
 
 include SYSTEM_ROOT.'header.php';
 ?>
-<div class="container">
-    <div class="well bs-component">
-        <h2><?php echo $htext?>
-        <?php if($conf['filesearch']==1){?><span class="searchbox">
-            <form class="form-inline" action="./" method="GET">
+<main class="container app-shell">
+    <section class="workspace-heading">
+        <div>
+            <p class="workspace-eyebrow"><i class="fa fa-database" aria-hidden="true"></i> FILE SPACE</p>
+            <h1><?php echo $htext?></h1>
+            <p class="workspace-meta">共 <?php echo $numrows?> 个文件，随时取用与分享。</p>
+        </div>
+        <a class="btn btn-primary btn-raised workspace-upload" href="./upload.php"><i class="fa fa-arrow-up" aria-hidden="true"></i><span>上传文件</span></a>
+    </section>
+
+    <section class="file-workspace">
+        <div class="file-toolbar">
+            <div class="file-toolbar-title">
+                <h2>文件列表</h2>
+                <span><?php echo $numrows?> 项</span>
+            </div>
+            <?php if($conf['filesearch']==1){?>
+            <form class="file-search" action="./" method="GET">
                 <?php if(isset($_GET['m'])){?><input name="m" type="hidden" value="<?php echo htmlspecialchars($_GET['m'])?>"><?php }?>
-				<input name="kw" class="form-control" type="search" placeholder="请输入搜索关键字" value="<?php echo htmlspecialchars($kw, ENT_QUOTES, 'UTF-8')?>" required="">
-				<button class="btn btn-default btn-raised btn-sm" type="submit"><i class="fa fa-search" aria-hidden="true"></i> 搜索</button>
+				<label class="sr-only" for="file-search-keyword">搜索文件</label>
+				<i class="fa fa-search" aria-hidden="true"></i>
+				<input id="file-search-keyword" name="kw" class="form-control" type="search" placeholder="搜索文件名" value="<?php echo htmlspecialchars($kw, ENT_QUOTES, 'UTF-8')?>" required="">
+				<button class="btn btn-default" type="submit">搜索</button>
 			</form>
-        </span><?php }?></h2>
-        <div class="table-responsive">
-       <table class="table table-striped table-hover filelist">
+            <?php }?>
+        </div>
+        <div class="table-responsive file-table-wrap">
+       <table class="table table-hover filelist">
             <thead>
                 <tr>
                     <th>#</th>
@@ -71,9 +88,8 @@ include SYSTEM_ROOT.'header.php';
             </thead>
             <tbody>
 <?php
-$numrows=$DB->getColumn("SELECT count(*) from pre_file WHERE {$sql}", $params);
 $pagesize=15;
-$pages=ceil($numrows/$pagesize);
+$pages=max(1, ceil($numrows/$pagesize));
 $page=isset($_GET['page'])?intval($_GET['page']):1;
 $offset=$pagesize*($page - 1);
 
@@ -83,17 +99,17 @@ while($res = $rs->fetch())
 {
 	$fileurl = './down.php/'.$res['hash'].'.'.($res['type']?$res['type']:'file');
 	$viewurl = './file.php?hash='.$res['hash'];
-echo '<tr><td><b>'.$i++.'</b></td><td><a href="'.$fileurl.'">下载</a>｜<a href="'.$viewurl.'">查看</a></td><td><i class="fa '.type_to_icon($res['type']).' fa-fw"></i>'.htmlspecialchars($res['name'], ENT_QUOTES, 'UTF-8').'</td><td>'.size_format($res['size']).'</td><td><font color="blue">'.htmlspecialchars($res['type']?$res['type']:'未知', ENT_QUOTES, 'UTF-8').'</font></td><td>'.htmlspecialchars($res['addtime'], ENT_QUOTES, 'UTF-8').'</td><td>'.htmlspecialchars(preg_replace('/\d+$/','*',$res['ip']), ENT_QUOTES, 'UTF-8').'</b></td></tr>';
+	echo '<tr><td class="file-index">'.str_pad($i++, 2, '0', STR_PAD_LEFT).'</td><td class="file-actions"><a href="'.$fileurl.'"><i class="fa fa-download" aria-hidden="true"></i>下载</a><a href="'.$viewurl.'"><i class="fa fa-external-link" aria-hidden="true"></i>查看</a></td><td class="file-name"><i class="fa '.type_to_icon($res['type']).' fa-fw" aria-hidden="true"></i><span>'.htmlspecialchars($res['name'], ENT_QUOTES, 'UTF-8').'</span></td><td>'.size_format($res['size']).'</td><td><span class="file-type">'.htmlspecialchars($res['type']?$res['type']:'未知', ENT_QUOTES, 'UTF-8').'</span></td><td>'.htmlspecialchars($res['addtime'], ENT_QUOTES, 'UTF-8').'</td><td>'.htmlspecialchars(preg_replace('/\d+$/','*',$res['ip']), ENT_QUOTES, 'UTF-8').'</td></tr>';
 }
-if($numrows == 0) echo '<tr><td colspan="7" align="center">还没上传过任何文件</td></tr>';
+if($numrows == 0) echo '<tr><td colspan="7" class="empty-files"><i class="fa fa-folder-open-o" aria-hidden="true"></i><strong>这里还没有文件</strong><span>上传一个文件，开始建立你的共享空间。</span><a href="./upload.php" class="btn btn-primary">上传文件</a></td></tr>';
 ?>
             </tbody>
         </table>
         </div>
-        <div class="row">
-        <div class="col-md-6"><br>共有 <?php echo $numrows?> 个文件&nbsp;&nbsp;当前第 <?php echo $page?> 页，共 <?php echo $pages?> 页</div>
-        <div class="col-md-6"><nav>
-  <ul class="pagination pagination-sm" style="float:right;">
+        <div class="file-pagination">
+        <div class="pagination-summary">第 <?php echo $page?> / <?php echo $pages?> 页 <span>共 <?php echo $numrows?> 个文件</span></div>
+        <nav aria-label="文件分页">
+  <ul class="pagination pagination-sm">
 <?php
 $first=1;
 $prev=$page-1;
@@ -125,9 +141,10 @@ echo '<li class="disabled"><a>尾页</a></li>';
 }
 ?>
   </ul>
-</nav></div>
+</nav>
 </div>
-    </div>
+</section>
+</main>
 <?php include SYSTEM_ROOT.'footer.php';?>
 <?php if(!empty($conf['gonggao'])){?>
 <link href="https://s4.zstatic.net/ajax/libs/snackbarjs/1.1.0/snackbar.min.css" rel="stylesheet">
