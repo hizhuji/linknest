@@ -37,6 +37,14 @@ $thisurl = $siteurl.'s.php?code='.rawurlencode($shareCode);
 $view_type = get_view_type($type);
 $expire_text = empty($share['expire_at']) ? '永久有效' : $share['expire_at'];
 $max_downloads_text = intval($share['max_accesses']) > 0 ? intval($share['max_accesses']).' 次' : '不限次数';
+$ownedShares = [];
+$recentLogs = [];
+if($is_mine){
+  foreach(pan_get_file_shares($DB, $share['file_id']) as $candidateShare){
+    if(pan_share_is_owner($candidateShare, $islogin, $islogin2, $uid, isset($_SESSION['shareids']) ? $_SESSION['shareids'] : [])) $ownedShares[] = $candidateShare;
+  }
+  $recentLogs = pan_get_share_logs($DB, $share['id'], 10);
+}
 
 if($view_type == 'image'){
   $filetype = 1;
@@ -263,7 +271,27 @@ if($access_error){
                               </div>
                             </div>
                             <button onclick="update_access_policy()" class="btn btn-raised btn-primary"><i class="fa fa-clock-o" aria-hidden="true"></i> 更新分享策略</button>
-                            <button onclick="delete_confirm()" class="btn btn-raised btn-danger"><i class="fa fa-close" aria-hidden="true"></i> 删除文件</button>
+                            <button onclick="delete_confirm()" class="btn btn-raised btn-danger"><i class="fa fa-close" aria-hidden="true"></i> 删除当前分享</button>
+                            <hr>
+                            <h4 style="text-align:left">创建新分享</h4>
+                            <div class="row" style="text-align:left">
+                              <div class="col-sm-4"><label for="new_share_code">自定义短码</label><input class="form-control" id="new_share_code" maxlength="64" placeholder="留空自动生成"></div>
+                              <div class="col-sm-4"><label for="new_share_password">提取密码</label><input class="form-control" id="new_share_password" maxlength="128" type="password" placeholder="留空不设密码"></div>
+                              <div class="col-sm-4"><label for="new_share_expire">有效期</label><select class="form-control" id="new_share_expire"><option value="0">永久</option><option value="1">1 天</option><option value="7">7 天</option><option value="30">30 天</option></select></div>
+                              <div class="col-sm-4"><label for="new_share_limit">最大访问次数</label><input class="form-control" id="new_share_limit" type="number" min="0" max="1000000" value="0"></div>
+                              <div class="col-sm-4" style="padding-top:28px"><label><input id="new_share_once" type="checkbox"> 一次性分享</label></div>
+                              <div class="col-sm-4" style="padding-top:20px"><button onclick="create_share()" class="btn btn-raised btn-success"><i class="fa fa-plus"></i> 创建链接</button></div>
+                            </div>
+                            <hr>
+                            <h4 style="text-align:left">我的分享链接</h4>
+                            <div class="table-responsive"><table class="table table-bordered table-condensed"><thead><tr><th>短码</th><th>状态</th><th>访问</th><th>类型</th><th>操作</th></tr></thead><tbody>
+                            <?php foreach($ownedShares as $ownedShare){ ?>
+                              <tr><td><a href="s.php?code=<?php echo rawurlencode($ownedShare['code'])?>" target="_blank"><?php echo htmlspecialchars($ownedShare['code'], ENT_QUOTES, 'UTF-8')?></a></td><td><?php echo intval($ownedShare['status'])===1?'有效':'已撤销'?></td><td><?php echo intval($ownedShare['access_count'])?></td><td><?php echo intval($ownedShare['one_time'])===1?'一次性':'普通'?></td><td><button class="btn btn-xs btn-default" onclick="toggle_share(<?php echo pan_json_for_html($ownedShare['code'])?>)"><?php echo intval($ownedShare['status'])===1?'撤销':'恢复'?></button></td></tr>
+                            <?php } ?></tbody></table></div>
+                            <h4 style="text-align:left">当前分享最近访问</h4>
+                            <div class="table-responsive"><table class="table table-bordered table-condensed"><thead><tr><th>时间</th><th>行为</th><th>IP</th><th>流量</th></tr></thead><tbody>
+                            <?php foreach($recentLogs as $log){ ?><tr><td><?php echo htmlspecialchars($log['created_at'], ENT_QUOTES, 'UTF-8')?></td><td><?php echo $log['event']==='download'?'下载':'预览'?></td><td><?php echo htmlspecialchars($log['ip_masked'], ENT_QUOTES, 'UTF-8')?></td><td><?php echo size_format($log['bytes'])?></td></tr><?php } ?>
+                            <?php if(!$recentLogs){ ?><tr><td colspan="4">暂无访问记录</td></tr><?php } ?></tbody></table></div>
                           </div>
                       </div>
                   </div>
@@ -350,7 +378,7 @@ function update_access_policy(){
 function delete_confirm(){
   var share_code = $("#share_code").val();
   var csrf_token = $("#csrf_token").val();
-  var confirmobj = layer.confirm('删除文件后不可恢复，确定删除吗？', {
+  var confirmobj = layer.confirm('确定删除当前分享吗？其他分享链接不会受影响。', {
 	  btn: ['确定','取消'], icon: 0
 	}, function(){
     var ii = layer.load(2);
@@ -375,6 +403,16 @@ function delete_confirm(){
 	}, function(){
 	  layer.close(confirmobj);
 	});
+}
+function create_share(){
+  $.ajax({type:'POST',url:'ajax.php?act=createShare',dataType:'json',data:{
+    share_code:$("#share_code").val(),csrf_token:$("#csrf_token").val(),custom_code:$("#new_share_code").val(),
+    use_password:$("#new_share_password").val()?1:0,password:$("#new_share_password").val(),expire_days:$("#new_share_expire").val(),
+    max_accesses:$("#new_share_limit").val(),one_time:$("#new_share_once").prop('checked')?1:0
+  },success:function(data){if(data.code===0){layer.alert(data.msg+'：'+data.pageurl,{icon:1},function(){window.location.reload();});}else layer.alert(data.msg,{icon:2});},error:function(){layer.msg('服务器错误');}});
+}
+function toggle_share(code){
+  $.ajax({type:'POST',url:'ajax.php?act=toggleShare',dataType:'json',data:{source_code:$("#share_code").val(),target_code:code,csrf_token:$("#csrf_token").val()},success:function(data){if(data.code===0){layer.msg(data.msg,{icon:1});setTimeout(function(){window.location.reload();},500);}else layer.alert(data.msg,{icon:2});},error:function(){layer.msg('服务器错误');}});
 }
 $(document).ready(function(){
   var clipboard = new Clipboard('.copy-btn');

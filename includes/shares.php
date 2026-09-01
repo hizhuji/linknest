@@ -36,6 +36,10 @@ function pan_get_default_share_by_hash($DB, $hash) {
     return $DB->getRow(pan_share_select_sql()." WHERE f.hash=:hash ORDER BY s.id ASC LIMIT 1", [':hash'=>$hash]);
 }
 
+function pan_get_file_shares($DB, $fileId) {
+    return $DB->getAll(pan_share_select_sql()." WHERE s.file_id=:file_id ORDER BY s.id DESC", [':file_id'=>intval($fileId)]);
+}
+
 function pan_create_share($DB, $fileId, $options = []) {
     $fileId = intval($fileId);
     if($fileId < 1) return false;
@@ -99,6 +103,44 @@ function pan_record_share_access($DB, $share) {
     if(!$stmt || $stmt->rowCount() !== 1) return false;
     $DB->exec("UPDATE pre_file SET lasttime=NOW(),count=count+1 WHERE id=:id", [':id'=>intval($share['file_id'])]);
     return true;
+}
+
+function pan_mask_ip($ip) {
+    if(filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)){
+        $parts = explode('.', $ip);
+        return $parts[0].'.'.$parts[1].'.'.$parts[2].'.*';
+    }
+    if(filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)){
+        $packed = inet_pton($ip);
+        if($packed !== false) return inet_ntop(substr($packed, 0, 6).str_repeat("\0", 10)).'/48';
+    }
+    return 'unknown';
+}
+
+function pan_record_share_event($DB, $share, $event, $bytes, $clientIp, $key, $retentionDays = 30) {
+    if(!in_array($event, ['download', 'preview'], true)) return false;
+    $bytes = max(0, intval($bytes));
+    $userAgent = substr(isset($_SERVER['HTTP_USER_AGENT']) ? (string)$_SERVER['HTTP_USER_AGENT'] : '', 0, 500);
+    $referer = substr(isset($_SERVER['HTTP_REFERER']) ? (string)$_SERVER['HTTP_REFERER'] : '', 0, 1000);
+    $ipHash = hash_hmac('sha256', (string)$clientIp, (string)$key);
+    $result = $DB->exec("INSERT INTO pre_access_log (share_id,file_id,event,bytes,ip_hash,ip_masked,user_agent,referer,created_at) VALUES (:share_id,:file_id,:event,:bytes,:ip_hash,:ip_masked,:user_agent,:referer,NOW())", [
+        ':share_id'=>intval($share['id']), ':file_id'=>intval($share['file_id']), ':event'=>$event, ':bytes'=>$bytes,
+        ':ip_hash'=>$ipHash, ':ip_masked'=>pan_mask_ip($clientIp), ':user_agent'=>$userAgent, ':referer'=>$referer,
+    ]);
+    if($result === false) return false;
+    $downloads = $event === 'download' ? 1 : 0;
+    $previews = $event === 'preview' ? 1 : 0;
+    $DB->exec("INSERT INTO pre_access_daily (share_id,access_date,requests,downloads,previews,bytes) VALUES (:share_id,CURDATE(),1,:downloads,:previews,:bytes) ON DUPLICATE KEY UPDATE requests=requests+1,downloads=downloads+VALUES(downloads),previews=previews+VALUES(previews),bytes=bytes+VALUES(bytes)", [
+        ':share_id'=>intval($share['id']), ':downloads'=>$downloads, ':previews'=>$previews, ':bytes'=>$bytes,
+    ]);
+    $retentionDays = max(1, min(3650, intval($retentionDays)));
+    if(random_int(1, 100) === 1) $DB->exec("DELETE FROM pre_access_log WHERE created_at<DATE_SUB(NOW(),INTERVAL {$retentionDays} DAY)");
+    return true;
+}
+
+function pan_get_share_logs($DB, $shareId, $limit = 10) {
+    $limit = max(1, min(100, intval($limit)));
+    return $DB->getAll("SELECT event,bytes,ip_masked,user_agent,referer,created_at FROM pre_access_log WHERE share_id=:share_id ORDER BY id DESC LIMIT {$limit}", [':share_id'=>intval($shareId)]);
 }
 
 function pan_share_is_owner($share, $isAdmin, $isUser, $uid, $sessionShareIds = []) {

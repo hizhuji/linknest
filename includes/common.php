@@ -6,7 +6,7 @@ define('SYSTEM_ROOT', dirname(__FILE__).'/');
 define('ROOT', dirname(SYSTEM_ROOT).'/');
 define('VERSION', '1660');
 define('VERSION_NAME', '6.6.0');
-define('DB_VERSION', '1006');
+define('DB_VERSION', '1007');
 date_default_timezone_set('Asia/Shanghai');
 $date = date("Y-m-d H:i:s");
 

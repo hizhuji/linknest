@@ -276,6 +276,39 @@ case 'updateAccessPolicy':
 	else exit('{"code":-1,"msg":"分享策略更新失败"}');
 break;
 
+case 'createShare':
+	$sourceCode = isset($_POST['share_code']) ? trim($_POST['share_code']) : '';
+	require_csrf_token();
+	$sourceShare = pan_get_share_by_code($DB, $sourceCode);
+	if(!$sourceShare)exit('{"code":-1,"msg":"原分享不存在"}');
+	if(!pan_share_is_owner($sourceShare, $islogin, $islogin2, $uid, isset($_SESSION['shareids']) ? $_SESSION['shareids'] : []))exit('{"code":-1,"msg":"无权限"}');
+	$customCode = isset($_POST['custom_code']) ? trim($_POST['custom_code']) : '';
+	if($customCode!=='' && !pan_share_code_is_valid($customCode))exit('{"code":-1,"msg":"短码需为 6-64 位字母、数字、下划线或短横线"}');
+	$password = !empty($_POST['use_password']) ? (string)$_POST['password'] : '';
+	if($password!=='' && strlen($password)>128)exit('{"code":-1,"msg":"密码过长"}');
+	$expireAt = pan_expire_at_from_days(isset($_POST['expire_days']) ? $_POST['expire_days'] : 0);
+	$maxAccesses = pan_normalize_max_downloads(isset($_POST['max_accesses']) ? $_POST['max_accesses'] : 0);
+	$oneTime = !empty($_POST['one_time']);
+	$newShare = pan_create_share($DB, $sourceShare['file_id'], ['code'=>$customCode, 'password'=>$password, 'expire_at'=>$expireAt, 'max_accesses'=>$maxAccesses, 'one_time'=>$oneTime, 'uid'=>($islogin2 ? $uid : intval($sourceShare['created_by_uid']))]);
+	if(!$newShare)exit('{"code":-1,"msg":"创建失败，短码可能已被使用"}');
+	$_SESSION['shareids'][] = intval($newShare['id']);
+	exit(json_encode(['code'=>0, 'msg'=>'新分享已创建', 'share_code'=>$newShare['code'], 'pageurl'=>$siteurl.'s.php?code='.rawurlencode($newShare['code'])]));
+break;
+
+case 'toggleShare':
+	$sourceCode = isset($_POST['source_code']) ? trim($_POST['source_code']) : '';
+	$targetCode = isset($_POST['target_code']) ? trim($_POST['target_code']) : '';
+	require_csrf_token();
+	$sourceShare = pan_get_share_by_code($DB, $sourceCode);
+	$targetShare = pan_get_share_by_code($DB, $targetCode);
+	if(!$sourceShare || !$targetShare || intval($sourceShare['file_id'])!==intval($targetShare['file_id']))exit('{"code":-1,"msg":"分享不存在"}');
+	if(!pan_share_is_owner($sourceShare, $islogin, $islogin2, $uid, isset($_SESSION['shareids']) ? $_SESSION['shareids'] : []) || !pan_share_is_owner($targetShare, $islogin, $islogin2, $uid, isset($_SESSION['shareids']) ? $_SESSION['shareids'] : []))exit('{"code":-1,"msg":"无权限"}');
+	$status = intval($targetShare['status'])===1 ? 0 : 1;
+	$resetSql = $status===1 && intval($targetShare['one_time'])===1 ? ',access_count=0' : '';
+	if($DB->exec("UPDATE pre_share SET status=:status{$resetSql} WHERE id=:id", [':status'=>$status, ':id'=>intval($targetShare['id'])])!==false)exit(json_encode(['code'=>0, 'msg'=>$status ? '分享已恢复' : '分享已撤销']));
+	exit('{"code":-1,"msg":"操作失败"}');
+break;
+
 default:
 	exit('{"code":-4,"msg":"No Act"}');
 break;

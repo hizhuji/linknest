@@ -5,7 +5,7 @@ create table `pre_config` (
   PRIMARY KEY  (`k`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `pre_config` VALUES ('version', '1006');
+INSERT INTO `pre_config` VALUES ('version', '1007');
 INSERT INTO `pre_config` VALUES ('admin_user', 'admin');
 INSERT INTO `pre_config` VALUES ('admin_pwd', '');
 INSERT INTO `pre_config` VALUES ('blackip', '');
@@ -15,6 +15,7 @@ INSERT INTO `pre_config` VALUES ('keywords', '外链网盘,免费外链,免费�
 INSERT INTO `pre_config` VALUES ('description', 'LinkNest 提供文件外链、分享与网盘挂载服务');
 INSERT INTO `pre_config` VALUES ('ip_type', '2');
 INSERT INTO `pre_config` VALUES ('trusted_proxy_ips', '');
+INSERT INTO `pre_config` VALUES ('access_log_retention_days', '30');
 INSERT INTO `pre_config` VALUES ('filesearch', '1');
 INSERT INTO `pre_config` VALUES ('storage', 'local');
 INSERT INTO `pre_config` VALUES ('filepath', '');
@@ -113,4 +114,32 @@ CREATE TABLE `pre_share` (
   UNIQUE KEY `code` (`code`),
   KEY `file_id` (`file_id`),
   KEY `owner_status` (`created_by_uid`,`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `pre_access_log` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `share_id` bigint(20) unsigned NOT NULL,
+  `file_id` int(11) unsigned NOT NULL,
+  `event` varchar(20) CHARACTER SET ascii NOT NULL,
+  `bytes` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `ip_hash` char(64) CHARACTER SET ascii NOT NULL,
+  `ip_masked` varchar(64) NOT NULL,
+  `user_agent` varchar(500) DEFAULT NULL,
+  `referer` varchar(1000) DEFAULT NULL,
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `share_time` (`share_id`,`created_at`),
+  KEY `file_time` (`file_id`,`created_at`),
+  KEY `ip_time` (`ip_hash`,`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `pre_access_daily` (
+  `share_id` bigint(20) unsigned NOT NULL,
+  `access_date` date NOT NULL,
+  `requests` int(11) unsigned NOT NULL DEFAULT '0',
+  `downloads` int(11) unsigned NOT NULL DEFAULT '0',
+  `previews` int(11) unsigned NOT NULL DEFAULT '0',
+  `bytes` bigint(20) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`share_id`,`access_date`),
+  KEY `access_date` (`access_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

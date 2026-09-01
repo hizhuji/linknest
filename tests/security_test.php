@@ -57,6 +57,8 @@ expect_true(pan_file_access_error(['expire_at'=>'2026-09-02 12:00:00', 'count'=>
 expect_true(pan_share_access_error(['status'=>0, 'block'=>0, 'expire_at'=>null, 'max_accesses'=>0, 'access_count'=>0], $now) === 'revoked', 'Revoked shares should be rejected.');
 expect_true(pan_share_access_error(['status'=>1, 'block'=>0, 'expire_at'=>'2026-09-01 11:59:59', 'max_accesses'=>0, 'access_count'=>0], $now) === 'expired', 'Expired share records should be rejected.');
 expect_true(pan_share_access_error(['status'=>1, 'block'=>0, 'expire_at'=>null, 'max_accesses'=>1, 'access_count'=>1], $now) === 'limit', 'Shares at their access limit should be rejected.');
+expect_true(pan_mask_ip('203.0.113.42') === '203.0.113.*', 'IPv4 access logs should mask the final octet.');
+expect_true(substr(pan_mask_ip('2001:db8:abcd:1234::1'), -3) === '/48', 'IPv6 access logs should retain only a /48 prefix.');
 expect_true(pan_normalize_site_url('pan.example.com') === 'https://pan.example.com/', 'Bare domains should normalize to HTTPS.');
 expect_true(pan_normalize_site_url('https://pan.example.com/files') === 'https://pan.example.com/files/', 'Site paths should be preserved with a trailing slash.');
 expect_true(pan_normalize_site_url('https://user:pass@pan.example.com/') === false, 'Credential-bearing site URLs should be rejected.');

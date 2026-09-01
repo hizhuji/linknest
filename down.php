@@ -35,6 +35,7 @@ if($stor->exists($hash))
         http_response_code(410);
         exit(pan_share_access_message('limit'));
     }
+	pan_record_share_event($DB, $share, 'download', $row['size'], $clientip, SYS_KEY, isset($conf['access_log_retention_days']) ? $conf['access_log_retention_days'] : 30);
 
     file_output($hash, $row['type'], $row['size'], $row['name']);
 }
