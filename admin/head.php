@@ -51,7 +51,10 @@
           <li class="<?php echo checkIfActive('user')?>">
             <a href="./user.php"><i class="fa fa-users"></i> 用户管理</a>
           </li>
-		      <li class="<?php echo checkIfActive('set,set_stor')?>">
+		  <li class="<?php echo checkIfActive('update')?>">
+			<a href="./update.php"><i class="fa fa-refresh"></i> 在线更新</a>
+		  </li>
+		  <li class="<?php echo checkIfActive('set,set_stor')?>">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-cog"></i> 系统设置<b class="caret"></b></a>
             <ul class="dropdown-menu">
               <li><a href="./set.php?mod=site">网站信息设置</a></li>

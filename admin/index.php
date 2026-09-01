@@ -7,7 +7,6 @@ if($islogin==1){}else exit("<script language='javascript'>window.location.href='
 ?>
 <?php
 $mysqlversion=$DB->getColumn("select VERSION()");
-$checkupdate = '//auth.cccyun.cc/app/pan.php?ver='.VERSION;
 ?>
 <link href="../assets/css/admin.css" rel="stylesheet"/>
 <div class="container" style="padding-top:70px;">
@@ -139,7 +138,10 @@ $checkupdate = '//auth.cccyun.cc/app/pan.php?ver='.VERSION;
                     <div class="panel-heading">
                         <h3 class="panel-title">版本信息</h3>
                     </div>
-                    <ul class="list-group text-dark" id="checkupdate"></ul>
+					<ul class="list-group text-dark">
+						<li class="list-group-item"><b>当前版本：</b>V<?php echo htmlspecialchars(VERSION_NAME, ENT_QUOTES, 'UTF-8'); ?></li>
+						<li class="list-group-item"><a href="./update.php"><i class="fa fa-refresh"></i> 检查并安装维护版更新</a></li>
+					</ul>
                 </div>
             </div>
         </div>
@@ -156,15 +158,7 @@ $(document).ready(function(){
             $('#count1').html(data.count1);
             $('#count2').html(data.count2);
             $('#count3').html(data.count3);
-            $('#count4').html(data.count4);
-            $.ajax({
-                url: '<?php echo $checkupdate?>',
-                type: 'get',
-                dataType: 'jsonp',
-                jsonpCallback: 'callback'
-            }).done(function(data){
-                $("#checkupdate").html(data.msg);
-            })
+			$('#count4').html(data.count4);
         }
     })
 })

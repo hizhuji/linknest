@@ -6,6 +6,10 @@
 2. Confirm that the server runs PHP 7.4 through 8.3 with `pdo_mysql` and `curl` enabled.
 3. Replace application files without replacing `config.php`, `file/`, or `install/install.lock`.
 
+## Online updates
+
+Maintained releases can be installed from **Admin → Online Update**. The updater downloads a tagged package from the maintenance repository, verifies its SHA-256 digest, creates a source backup, and preserves `config.php`, local uploads, and `install/install.lock`. If a release includes a database version change, the updater sends the administrator to the migration step after replacing the program files.
+
 ## Upgrade to database version 1002
 
 Open `/install/update.php` once after deployment. This creates the login rate-limit table and initializes API-token settings for existing installations.

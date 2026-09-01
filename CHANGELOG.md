@@ -1,5 +1,12 @@
 # CHANGELOG
 
+### V6.3.0
+
+1. Added a maintenance-repository-backed online updater to the administrator dashboard.
+2. Added package host restrictions, SHA-256 verification, archive path validation, staging, and pre-update source backups.
+3. Preserved site configuration, local uploads, runtime update data, and the installation lock during upgrades.
+4. Replaced the discontinued upstream version-check service with the community maintenance channel.
+
 ### V6.2.0
 
 1. Added an administrator setting for changing the public site and share-link domain.

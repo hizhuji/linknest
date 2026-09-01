@@ -2,6 +2,7 @@
 
 require __DIR__ . '/../includes/security.php';
 require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/updater.php';
 
 function expect_true($value, $message) {
     if (!$value) {
@@ -34,5 +35,12 @@ expect_true(pan_file_access_error(['expire_at'=>'2026-09-02 12:00:00', 'count'=>
 expect_true(pan_normalize_site_url('pan.example.com') === 'https://pan.example.com/', 'Bare domains should normalize to HTTPS.');
 expect_true(pan_normalize_site_url('https://pan.example.com/files') === 'https://pan.example.com/files/', 'Site paths should be preserved with a trailing slash.');
 expect_true(pan_normalize_site_url('https://user:pass@pan.example.com/') === false, 'Credential-bearing site URLs should be rejected.');
+expect_true(pan_update_allowed_url('https://codeload.github.com/hizhuji/pan/zip/refs/tags/v6.3.0', ['codeload.github.com']), 'The official package host should be accepted.');
+expect_true(!pan_update_allowed_url('http://codeload.github.com/hizhuji/pan.zip', ['codeload.github.com']), 'Update URLs must use HTTPS.');
+expect_true(pan_update_preserve_path('config.php'), 'The site configuration must be preserved during updates.');
+expect_true(pan_update_preserve_path('file/example.bin'), 'Local uploads must be preserved during updates.');
+expect_true(!pan_update_preserve_path('admin/index.php'), 'Application source files should be replaceable.');
+$manifest = pan_update_validate_manifest(['version'=>'1630', 'version_name'=>'6.3.0', 'package_url'=>'https://codeload.github.com/hizhuji/pan/zip/refs/tags/v6.3.0', 'sha256'=>str_repeat('a', 64), 'released_at'=>'2026-09-01', 'changelog'=>['Online updater'], 'database_version'=>'1003']);
+expect_true($manifest['version'] === 1630 && $manifest['database_version'] === 1003, 'Update manifests should normalize numeric version fields.');
 
 echo "security tests passed" . PHP_EOL;

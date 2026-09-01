@@ -1,5 +1,8 @@
 /config.php
 /install/install.lock
+/install/update.lock
+/install/update-temp/
+/install/backups/
 /includes/log.txt
 /file/*
 !/file/.htaccess
