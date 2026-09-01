@@ -10,17 +10,6 @@ if($islogin !== 1){
 
 @header('Content-Type: text/html; charset=UTF-8');
 
-function random($length, $numeric = 0) {
-	$seed = base_convert(md5(microtime().$_SERVER['DOCUMENT_ROOT']), 16, $numeric ? 10 : 35);
-	$seed = $numeric ? (str_replace('0', '', $seed).'012340567890') : ($seed.'zZ'.strtoupper($seed));
-	$hash = '';
-	$max = strlen($seed) - 1;
-	for($i = 0; $i < $length; $i++) {
-		$hash .= $seed[mt_rand(0, $max)];
-	}
-	return $hash;
-}
-
 if($_SERVER['REQUEST_METHOD'] !== 'POST'){
 	$csrfToken = pan_csrf_token();
 	exit('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>数据库升级</title><style>body{font-family:Arial,"Microsoft YaHei",sans-serif;max-width:680px;margin:80px auto;padding:24px;color:#222}.box{border:1px solid #ddd;padding:24px}button{background:#1677ff;color:#fff;border:0;padding:10px 20px;cursor:pointer}</style></head><body><div class="box"><h2>LinkNest 数据库升级</h2><p>升级前请确认已经备份数据库。此操作只允许当前登录的管理员执行。</p><form method="post"><input type="hidden" name="csrf_token" value="'.htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8').'"><button type="submit">确认执行升级</button></form></div></body></html>');

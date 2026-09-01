@@ -11,17 +11,6 @@ if(file_exists('install.lock')){
     exit('你已经成功安装，如需重新安装，请手动删除install目录下install.lock文件！');
 }
 
-function random($length, $numeric = 0) {
-	$seed = base_convert(md5(microtime().$_SERVER['DOCUMENT_ROOT']), 16, $numeric ? 10 : 35);
-	$seed = $numeric ? (str_replace('0', '', $seed).'012340567890') : ($seed.'zZ'.strtoupper($seed));
-	$hash = '';
-	$max = strlen($seed) - 1;
-	for($i = 0; $i < $length; $i++) {
-		$hash .= $seed[mt_rand(0, $max)];
-	}
-	return $hash;
-}
-
 if($step==3){
     if($_GET['jump']==1){
         include '../config.php';

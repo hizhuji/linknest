@@ -35,6 +35,8 @@ expect_true(strpos(pan_json_for_html("' </script>"), '<') === false, 'JavaScript
 $fileToken = pan_create_file_access_token('abc123', $key, 60);
 expect_true(pan_verify_file_access_token($fileToken, 'abc123', $key), 'File access token should validate for its file.');
 expect_true(!pan_verify_file_access_token($fileToken, 'other', $key), 'File access token must not authorize another file.');
+expect_true(strpos(file_get_contents(__DIR__.'/../install/update.php'), 'function random(') === false, 'The database updater must not redeclare the shared random helper.');
+expect_true(strpos(file_get_contents(__DIR__.'/../install/index.php'), 'function random(') === false, 'The installer must not duplicate the shared random helper.');
 
 expect_true(pan_share_code_is_valid('Abc_123-x'), 'Share codes should allow URL-safe characters.');
 expect_true(!pan_share_code_is_valid('bad code'), 'Share codes should reject spaces.');
