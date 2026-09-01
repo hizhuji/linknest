@@ -65,7 +65,7 @@ $write_ready = is_writable(ROOT) && is_writable(ROOT.'install');
           </div>
         </div>
         <hr/>
-        <div id="update-status" class="alert alert-info">点击下方按钮检查维护仓库中的最新稳定版本。</div>
+        <div id="update-status" class="alert alert-info">点击下方按钮检查 LinkNest 仓库中的最新稳定版本。</div>
         <div id="release-info" style="display:none;">
           <h4 id="release-title"></h4>
           <p class="text-muted" id="release-date"></p>
@@ -115,7 +115,7 @@ $write_ready = is_writable(ROOT) && is_writable(ROOT.'install');
     if(checking) return;
     checking = true;
     $('#check-update, #install-update').prop('disabled', true);
-    setStatus('正在连接维护仓库检查新版本...', 'info');
+    setStatus('正在连接 LinkNest 仓库检查新版本...', 'info');
     requestUpdate('check', function(data){
       checking = false;
       $('#check-update').prop('disabled', false);

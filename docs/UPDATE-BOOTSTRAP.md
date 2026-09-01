@@ -6,7 +6,7 @@
 
 处理方法：
 
-1. 从维护仓库 `main` 分支下载最新的 `includes/updater.php`。
+1. 从 LinkNest 仓库 `main` 分支下载最新的 `includes/updater.php`。
 2. 在网站文件管理器中覆盖网站的 `includes/updater.php`。
 3. 回到后台“在线更新”，重新点击“检查更新”和“备份并立即更新”。
 

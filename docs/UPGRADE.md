@@ -20,6 +20,10 @@ All administrators and end users must sign in again after the upgrade because au
 
 Open `/install/update.php` once after deploying this release. The migration adds share expiration and maximum-access fields to the file table. Existing shares remain permanent and unlimited, so their current behavior does not change.
 
+## Upgrade to database version 1004
+
+This migration applies the LinkNest name only when the site still uses the untouched legacy default title or description. Administrator-customized site names and descriptions are preserved.
+
 ## API callers
 
 Existing API callers continue to work after upgrade because token enforcement is initially disabled for upgraded sites. Configure an API token in the admin API settings, update callers to send `X-Api-Key` or `api_token`, then enable API-token enforcement.

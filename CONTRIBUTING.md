@@ -1,6 +1,6 @@
 # Contributing
 
-This repository is a community-maintained continuation of the original project.
+LinkNest is a community-maintained continuation of the original `netcccyun/pan` project.
 
 1. Create a focused branch from `main`.
 2. Include an upgrade note when a change affects configuration or the database.

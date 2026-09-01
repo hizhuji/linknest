@@ -1,5 +1,12 @@
 # CHANGELOG
 
+### V6.5.0
+
+1. Renamed the maintained project to LinkNest and moved the primary repository to `hizhuji/linknest`.
+2. Replaced the legacy default product name across fresh installation, administration, and documentation surfaces.
+3. Added an upgrade migration that changes only untouched legacy default site names while preserving administrator-customized titles.
+4. Added prominent attribution to the original `netcccyun/pan` source and retained its MIT license and copyright notice.
+
 ### V6.4.1
 
 1. Added a raw GitHub update-package source for servers that cannot negotiate TLS with `codeload.github.com`.

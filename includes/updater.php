@@ -1,7 +1,7 @@
 <?php
 
 if(!defined('PAN_UPDATE_MANIFEST_URL')){
-	define('PAN_UPDATE_MANIFEST_URL', 'https://raw.githubusercontent.com/hizhuji/pan/main/update.json');
+	define('PAN_UPDATE_MANIFEST_URL', 'https://raw.githubusercontent.com/hizhuji/linknest/main/update.json');
 }
 
 function pan_update_allowed_url($url, $hosts) {
@@ -23,7 +23,7 @@ function pan_update_fetch_text($url, $maxBytes = 1048576) {
 	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
 	curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 	curl_setopt($ch, CURLOPT_TIMEOUT, 20);
-	curl_setopt($ch, CURLOPT_USERAGENT, 'Pan-Updater/'.VERSION);
+	curl_setopt($ch, CURLOPT_USERAGENT, 'LinkNest-Updater/'.VERSION);
 	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 	$content = curl_exec($ch);
@@ -77,7 +77,7 @@ function pan_update_download($url, $destination, $maxBytes = 209715200) {
 	curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
 	curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 15);
 	curl_setopt($ch, CURLOPT_TIMEOUT, 180);
-	curl_setopt($ch, CURLOPT_USERAGENT, 'Pan-Updater/'.VERSION);
+	curl_setopt($ch, CURLOPT_USERAGENT, 'LinkNest-Updater/'.VERSION);
 	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 	if(defined('CURL_SSLVERSION_TLSv1_2')) curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
