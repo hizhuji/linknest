@@ -1,18 +1,20 @@
 {
   "schema": 1,
-  "version": "1670",
-  "version_name": "6.7.0",
-  "released_at": "2026-09-01",
+  "version": "1671",
+  "version_name": "6.7.1",
+  "released_at": "2026-09-02",
   "min_version": "1601",
   "database_version": "1008",
-  "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.7.0.zip",
-  "sha256": "ba262d0da11ef05b747425aa263d4e53ed2dba3199fba5ce99cebfc2ffbf1eb3",
+  "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.7.1.zip",
+  "sha256": "fb47567a41dd3f9c211392be5a4f9aead290d2c6735feba5237ec44f78171ef1",
   "changelog": [
+    "紧急修复数据库升级页重复声明 random() 函数导致的致命错误。",
+    "同步移除安装页中未使用的重复函数定义，并增加回归测试。",
+    "数据库版本保持 1008，已经完成迁移的网站无需再次升级数据库。",
     "完成文件实体与分享链接分离，同一文件可创建多个独立短链接。",
     "新增自定义短码、一次性分享、单独撤销/恢复和脱敏访问日志。",
     "新增来源域名与客户端防盗链、每分钟请求限制和每日/月流量上限。",
     "新增公网 HTTPS Webhook 告警，并对同类告警自动去重。",
-    "完成文件名 XSS、密码 URL 暴露、可信代理、数据库升级鉴权和本地目录保护等安全修复。",
     "升级保留现有文件、账号、设置和旧链接，无需重新安装。"
   ]
 }
