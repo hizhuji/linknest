@@ -5,7 +5,7 @@ create table `pre_config` (
   PRIMARY KEY  (`k`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `pre_config` VALUES ('version', '1004');
+INSERT INTO `pre_config` VALUES ('version', '1005');
 INSERT INTO `pre_config` VALUES ('admin_user', 'admin');
 INSERT INTO `pre_config` VALUES ('admin_pwd', '');
 INSERT INTO `pre_config` VALUES ('blackip', '');
@@ -13,7 +13,8 @@ INSERT INTO `pre_config` VALUES ('title', 'LinkNest 外链云盘');
 INSERT INTO `pre_config` VALUES ('site_url', '');
 INSERT INTO `pre_config` VALUES ('keywords', '外链网盘,免费外链,免费图床,图片外链');
 INSERT INTO `pre_config` VALUES ('description', 'LinkNest 提供文件外链、分享与网盘挂载服务');
-INSERT INTO `pre_config` VALUES ('iptype', '0');
+INSERT INTO `pre_config` VALUES ('ip_type', '2');
+INSERT INTO `pre_config` VALUES ('trusted_proxy_ips', '');
 INSERT INTO `pre_config` VALUES ('filesearch', '1');
 INSERT INTO `pre_config` VALUES ('storage', 'local');
 INSERT INTO `pre_config` VALUES ('filepath', '');

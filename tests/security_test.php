@@ -23,6 +23,18 @@ $csrf = pan_csrf_token();
 expect_true(pan_verify_csrf_token($csrf), 'CSRF token should validate.');
 expect_true(!pan_verify_csrf_token('wrong-token'), 'Invalid CSRF token should fail.');
 
+$_SERVER['REMOTE_ADDR'] = '203.0.113.10';
+$_SERVER['HTTP_X_FORWARDED_FOR'] = '198.51.100.24';
+expect_true(real_ip(0, []) === '203.0.113.10', 'Proxy headers must be ignored without a trusted proxy.');
+expect_true(real_ip(0, ['203.0.113.10']) === '198.51.100.24', 'Proxy headers may be used behind an explicitly trusted proxy.');
+expect_true(pan_ip_matches_rule('10.1.2.3', '10.0.0.0/8'), 'Trusted proxy CIDR rules should match.');
+expect_true(pan_normalize_filename(" report\r\n' + alert(1) + '.mp3 ") === "report' + alert(1) + '.mp3", 'Filename normalization should remove control characters.');
+expect_true(strpos(pan_json_for_html("' </script>"), '<') === false, 'JavaScript values should be safely encoded for HTML script blocks.');
+
+$fileToken = pan_create_file_access_token('abc123', $key, 60);
+expect_true(pan_verify_file_access_token($fileToken, 'abc123', $key), 'File access token should validate for its file.');
+expect_true(!pan_verify_file_access_token($fileToken, 'other', $key), 'File access token must not authorize another file.');
+
 $hash = password_hash('correct horse battery staple', PASSWORD_DEFAULT);
 expect_true(pan_verify_admin_password('correct horse battery staple', $hash), 'Password hash should validate.');
 expect_true(!pan_verify_admin_password('incorrect', $hash), 'Wrong password should fail.');

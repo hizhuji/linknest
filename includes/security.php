@@ -89,3 +89,12 @@ function pan_verify_admin_password($password, $stored) {
 }
 
 function pan_password_needs_upgrade($stored) { return !pan_is_password_hash($stored) || password_needs_rehash($stored, PASSWORD_DEFAULT); }
+
+function pan_create_file_access_token($hash, $key, $ttl = 1800) {
+    return pan_create_auth_token(['type'=>'file_access', 'hash'=>(string)$hash, 'exp'=>time()+max(60, intval($ttl))], $key);
+}
+
+function pan_verify_file_access_token($token, $hash, $key) {
+    $payload = pan_read_auth_token((string)$token, $key);
+    return is_array($payload) && isset($payload['type'], $payload['hash']) && $payload['type'] === 'file_access' && hash_equals((string)$hash, (string)$payload['hash']);
+}

@@ -2,7 +2,7 @@
 include("./includes/common.php");
 
 $hash = isset($_GET['hash'])?$_GET['hash']:exit("<script language='javascript'>window.location.href='./';</script>");
-$pwd = isset($_GET['pwd'])?$_GET['pwd']:null;
+$accessToken = isset($_GET['access']) ? trim($_GET['access']) : '';
 $row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
 if(!$row)exit("<script language='javascript'>alert('文件不存在');window.location.href='./';</script>");
 $is_mine = false;
@@ -24,17 +24,13 @@ $name = $row['name'];
 $type = $row['type'];
 
 $downurl = 'down.php/'.$row['hash'].'.'.$type;
-if(!empty($row['pwd']))$downurl .= '&'.$row['pwd'];
 $viewurl = 'view.php/'.$row['hash'].'.'.$type;
-if(!empty($row['pwd']))$viewurl .= '&'.$row['pwd'];
 
 $downurl_all = $siteurl.$downurl;
 $viewurl_all = $siteurl.$viewurl;
 $playerurl_all = $siteurl.'player.php?hash='.rawurlencode($hash);
-if(!empty($pwd))$playerurl_all .= '&pwd='.rawurlencode($pwd);
 
 $thisurl = $siteurl.'file.php?hash='.$row['hash'];
-if(!empty($pwd))$thisurl .= '&pwd='.rawurlencode($pwd);
 
 $view_type = get_view_type($type);
 $expire_text = empty($row['expire_at']) ? '永久有效' : $row['expire_at'];
@@ -74,19 +70,47 @@ if($view_type == 'image'){
 <div class="container">
     <div class="row">
 <?php
-if($row['pwd']!=null && $row['pwd']!=$pwd){ ?>
-  <meta http-equiv="content-type" content="text/html;charset=utf-8"/>
-  <title>请输入密码下载文件</title>
-  <script type="text/javascript">
-  var pwd=prompt("请输入密码","")
-  if (pwd!=null && pwd!="")
-  {
-      window.location.href="./file.php?hash=<?php echo $row['hash']?>&pwd="+pwd
+if($row['pwd']!=null){
+  if($_SERVER['REQUEST_METHOD'] === 'POST'){
+    if(!pan_verify_request_csrf_token()){
+      http_response_code(403);
+      sysmsg('页面已过期，请刷新后重试。');
+    }
+    $submittedPassword = isset($_POST['pwd']) ? (string)$_POST['pwd'] : '';
+    if(hash_equals((string)$row['pwd'], $submittedPassword)) $accessToken = pan_create_file_access_token($row['hash'], SYS_KEY);
   }
-  </script>
-  请刷新页面，或[ <a href="javascript:history.back();">返回上一页</a> ]
+  if(!pan_verify_file_access_token($accessToken, $row['hash'], SYS_KEY)){ ?>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8"/>
+  <div class="panel panel-default"><div class="panel-heading"><h3 class="panel-title">请输入提取密码</h3></div><div class="panel-body">
+  <form method="post" action="file.php?hash=<?php echo rawurlencode($row['hash'])?>">
+    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8')?>">
+    <div class="form-group"><input class="form-control" type="password" name="pwd" autocomplete="off" required></div>
+    <button class="btn btn-primary" type="submit">验证并查看文件</button>
+  </form></div></div>
 <?php
-  exit;
+    exit;
+  }
+  $accessQuery = '?access='.rawurlencode($accessToken);
+  $downurl .= $accessQuery;
+  $viewurl .= $accessQuery;
+  $downurl_all = $siteurl.$downurl;
+  $viewurl_all = $siteurl.$viewurl;
+  $playerurl_all .= '&access='.rawurlencode($accessToken);
+  if($view_type === 'image'){
+    $htmlcode = htmlspecialchars('<img src="'.$viewurl_all.'"/>');
+    $ubbcode = '[img]'.$viewurl_all.'[/img]';
+  }elseif($view_type === 'audio'){
+    $htmlcode = htmlspecialchars('<audio id="bgmMusic" src="'.$viewurl_all.'" autoplay="autoplay" loop="loop" preload="auto"></audio>');
+    $htmlcode2 = htmlspecialchars('<iframe src="'.$playerurl_all.'" width="407" scrolling="no" frameborder="0" height="70"></iframe>');
+    $ubbcode = '[audio=X]'.$viewurl_all.'[/audio]';
+  }elseif($view_type === 'video'){
+    $htmlcode = htmlspecialchars('<video id="movies" src="'.$viewurl_all.'" autobuffer="true" controls="" width="100%"></video>');
+    $htmlcode2 = htmlspecialchars('<iframe src="'.$playerurl_all.'" width="800" height="500" scrolling="no" frameborder="0"></iframe>');
+    $ubbcode = '[movie=320*180]'.$viewurl_all.'[/movie]';
+  }else{
+    $htmlcode = htmlspecialchars('<a href="'.$downurl_all.'" target="_blank">'.$name.'</a>');
+    $ubbcode = '[url='.$downurl_all.']'.$name.'[/url]';
+  }
 }
 
 ?>
@@ -110,14 +134,14 @@ if($access_error){
   <div class="elseview">
   <div class="tubiao"><i class="fa '.type_to_icon($type).'"></i> </div>
 </div>
-<div class="elsetext"><p>'.$name.'</p><p>视频文件需审核通过后才能在线播放和下载，请等待审核通过！</p></div>
+<div class="elsetext"><p>'.htmlspecialchars($name, ENT_QUOTES, 'UTF-8').'</p><p>视频文件需审核通过后才能在线播放和下载，请等待审核通过！</p></div>
 </div>';
 }else{
   echo '<div class="view">
   <div class="elseview">
   <div class="tubiao"><i class="fa '.type_to_icon($type).'"></i> </div>
 </div>
-<div class="elsetext"><p>'.$name.'（'.size_format($row['size']).'）</p>
+<div class="elsetext"><p>'.htmlspecialchars($name, ENT_QUOTES, 'UTF-8').'（'.size_format($row['size']).'）</p>
 <a href="'.$downurl.'" class="btn btn-raised btn-primary btn-lg"><i class="fa fa-download" aria-hidden="true"></i> 下载文件<div class="ripple-container"></div></a>'.($view_type=='office'?'&nbsp;<a href="'.$office_url.'" class="btn btn-raised btn-info btn-lg" target="_blank"><i class="fa fa-eye" aria-hidden="true"></i> 在线预览<div class="ripple-container"></div></a>':'').'
 </div>
 </div>';
@@ -274,9 +298,9 @@ var ap = new APlayer({
   loop: 'none',
   theme: '#b2dae6',
   audio: [{
-      title: '<?php echo $name?>',
+      title: <?php echo pan_json_for_html($name)?>,
       author: 'none',
-      url: '<?php echo $viewurl_all?>',
+      url: <?php echo pan_json_for_html($viewurl_all)?>,
       cover: './assets/img/music.png',
   }]
 });
@@ -288,8 +312,8 @@ var ap = new APlayer({
 <script type="text/javascript">
   var videoObject = {
     container: '.videoplayer',
-    plug:'<?php echo $plug?>',
-    video:'<?php echo $viewurl_all?>',
+    plug:<?php echo pan_json_for_html($plug)?>,
+    video:<?php echo pan_json_for_html($viewurl_all)?>,
     webFull:true,
   };
   var player=new ckplayer(videoObject);

@@ -4,9 +4,9 @@ if(defined('IN_CRONLITE'))return;
 define('IN_CRONLITE', true);
 define('SYSTEM_ROOT', dirname(__FILE__).'/');
 define('ROOT', dirname(SYSTEM_ROOT).'/');
-define('VERSION', '1650');
-define('VERSION_NAME', '6.5.0');
-define('DB_VERSION', '1004');
+define('VERSION', '1651');
+define('VERSION_NAME', '6.5.1');
+define('DB_VERSION', '1005');
 date_default_timezone_set('Asia/Shanghai');
 $date = date("Y-m-d H:i:s");
 
@@ -61,7 +61,9 @@ if($detected_siteurl === false) $detected_siteurl = '/';
 $configured_siteurl = pan_normalize_site_url(isset($conf['site_url']) ? $conf['site_url'] : '');
 $siteurl = $configured_siteurl !== false && $configured_siteurl !== '' ? $configured_siteurl : $detected_siteurl;
 
-$clientip=real_ip($conf['ip_type']?$conf['ip_type']:0);
+$ipType = isset($conf['ip_type']) ? intval($conf['ip_type']) : 2;
+$trustedProxies = isset($conf['trusted_proxy_ips']) ? preg_split('/[\s,|]+/', $conf['trusted_proxy_ips'], -1, PREG_SPLIT_NO_EMPTY) : [];
+$clientip=real_ip($ipType, $trustedProxies);
 $islogin=0;
 $islogin2=0;
 $uid=0;

@@ -7,12 +7,6 @@ $urlarr=explode('/',$_SERVER['PATH_INFO']);
 if (($length = count($urlarr)) > 1) {
 $url = $urlarr[$length-1];
 }
-$extension=explode('&',$url);
-if (($length = count($extension)) > 1) {
-$pwd = $extension[$length-1];
-$url = $extension[0];
-}
-
 if(strpos($url,".")){
     $hash=substr($url,0,strpos($url,"."));
 }else{
@@ -31,7 +25,8 @@ if($access_error){
     http_response_code(410);
     exit(pan_file_access_message($access_error));
 }
-if($row['pwd']!=null && $row['pwd']!=$pwd){
+$accessToken = isset($_GET['access']) ? trim($_GET['access']) : '';
+if($row['pwd']!=null && !pan_verify_file_access_token($accessToken, $row['hash'], SYS_KEY)){
     http_response_code(403);
     exit('Password required');
 }

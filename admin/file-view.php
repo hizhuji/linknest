@@ -10,7 +10,7 @@ $row = $DB->getRow("SELECT * FROM pre_file WHERE id=:id", [':id'=>$id]);
 if(!$row)exit();
 $name = $row['name'];
 $type = $row['type'];
-$viewurl_all = $siteurl.'view.php/'.$row['hash'].'.'.$type;
+$viewurl_all = $siteurl.'admin/view.php/'.$row['hash'].'.'.$type;
 
 $view_type = get_view_type($type);
 
@@ -52,9 +52,9 @@ var ap = new APlayer({
   loop: 'none',
   theme: '#b2dae6',
   audio: [{
-      title: '<?php echo $name?>',
+      title: <?php echo pan_json_for_html($name)?>,
       author: 'none',
-      url: '<?php echo $viewurl_all?>',
+      url: <?php echo pan_json_for_html($viewurl_all)?>,
       cover: '../assets/img/music.png',
   }]
 });
@@ -67,8 +67,8 @@ var ap = new APlayer({
   $(".videoplayer").height($(window).height());
   var videoObject = {
     container: '.videoplayer',
-    plug:'<?php echo $plug?>',
-    video:'<?php echo $viewurl_all?>',
+    plug:<?php echo pan_json_for_html($plug)?>,
+    video:<?php echo pan_json_for_html($viewurl_all)?>,
     webFull:true,
   };
   var player=new ckplayer(videoObject);

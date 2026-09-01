@@ -196,7 +196,11 @@ API接口地址：<?php echo $siteurl?>api.php
   <form onsubmit="return saveSetting(this)" method="post" class="form-horizontal" role="form">
     <div class="form-group">
 	  <label class="col-sm-2 control-label">用户IP地址获取方式</label>
-	  <div class="col-sm-10"><select class="form-control" name="ip_type" default="<?php echo $conf['ip_type']?>"><option value="0">0_X_FORWARDED_FOR</option><option value="1">1_X_REAL_IP</option><option value="2">2_REMOTE_ADDR</option></select></div>
+	  <div class="col-sm-10"><select class="form-control" name="ip_type" default="<?php echo isset($conf['ip_type']) ? intval($conf['ip_type']) : 2?>"><option value="2">REMOTE_ADDR（推荐）</option><option value="0">可信代理 X_FORWARDED_FOR</option><option value="1">可信代理 X_REAL_IP</option></select></div>
+	</div>
+	<div class="form-group">
+	  <label class="col-sm-2 control-label">可信代理 IP</label>
+	  <div class="col-sm-10"><textarea class="form-control" name="trusted_proxy_ips" rows="3" placeholder="例如：127.0.0.1, 172.16.0.0/12"><?php echo htmlspecialchars(isset($conf['trusted_proxy_ips']) ? $conf['trusted_proxy_ips'] : '', ENT_QUOTES, 'UTF-8'); ?></textarea><p class="help-block">只有请求直接来自这些 IP 或 CIDR 网段时才读取代理头；未配置时始终使用 REMOTE_ADDR。</p></div>
 	</div>
 	<div class="form-group">
 	  <div class="col-sm-offset-2 col-sm-10"><input type="submit" name="submit" value="修改" class="btn btn-primary form-control"/><br/>
@@ -207,10 +211,8 @@ API接口地址：<?php echo $siteurl?>api.php
 <div class="panel-footer">
 <span class="glyphicon glyphicon-info-sign"></span>
 此功能设置用于防止用户伪造IP请求。<br/>
-X_FORWARDED_FOR：之前的获取真实IP方式，极易被伪造IP<br/>
-X_REAL_IP：在网站使用CDN的情况下选择此项，在不使用CDN的情况下也会被伪造<br/>
-REMOTE_ADDR：直接获取真实请求IP，无法被伪造，但可能获取到的是CDN节点IP<br/>
-<b>你可以从中选择一个能显示你真实地址的IP，优先选下方的选项。</b>
+	默认使用 REMOTE_ADDR。只有网站确实位于自己管理的 CDN 或反向代理之后，才配置可信代理并选择对应请求头。<br/>
+	请不要把任意公网网段加入可信代理，否则攻击者仍可伪造访问 IP。
 </div>
 </div>
 <script>

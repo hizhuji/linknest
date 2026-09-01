@@ -160,7 +160,8 @@ $(document).ready(function(){
 				field: 'name',
 				title: '文件名',
 				formatter: function(value, row, index) {
-					var html = '<a href="'+row.fileurl+'" title="点击下载"><i class="fa '+row.icon+' fa-fw"></i>'+value+'</a>';
+					var safeValue = $('<div>').text(value == null ? '' : value).html();
+					var html = '<a href="'+row.fileurl+'" title="点击下载"><i class="fa '+row.icon+' fa-fw"></i>'+safeValue+'</a>';
 					if(row.view){
 						if(row.view_type == 'image'){
 							html += ' [<a href="javascript:showimage(\''+row.viewurl+'\')">预览</a>]';

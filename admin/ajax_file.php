@@ -60,13 +60,9 @@ case 'fileList':
 		$row['view_type'] = get_view_type($row['type']);
 		$row['size'] = size_format($row['size']);
 
-		$pwd_ext2='';
-		if(!empty($row['pwd'])){
-			$pwd_ext2='&pwd='.$row['pwd'];
-		}
 		$row['fileurl'] = './down.php/'.$row['hash'].'.'.($row['type']?$row['type']:'file');
 		$row['viewurl'] = './view.php/'.$row['hash'].'.'.($row['type']?$row['type']:'file');
-		$row['pageurl'] = '../file.php?hash='.$row['hash'].$pwd_ext2;
+		$row['pageurl'] = '../file.php?hash='.$row['hash'];
 
 		$list2[] = $row;
 	}
@@ -124,8 +120,9 @@ case 'getFileInfo':
 break;
 case 'saveFileInfo':
 	$id = intval($_POST['id']);
-	$name = trim(htmlspecialchars($_POST['name']));
-	$type = trim(htmlspecialchars($_POST['type']));
+	$name = pan_normalize_filename($_POST['name']);
+	$type = strtolower(trim((string)$_POST['type']));
+	if(!preg_match('/^[a-z0-9]{1,50}$/', $type))exit('{"code":-1,"msg":"文件类型格式不正确"}');
 	$hide = intval($_POST['hide']);
 	$ispwd = intval($_POST['ispwd']);
 	$pwd = $ispwd==1?trim(htmlspecialchars($_POST['pwd'])):null;

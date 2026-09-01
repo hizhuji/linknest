@@ -66,7 +66,7 @@ if(!empty($conf['api_referer'])){
 if(!isset($_FILES['file']))showresult(['code'=>-1, 'msg'=>'请选择文件']);
 if($_SERVER['REQUEST_METHOD'] !== 'POST')showresult(['code'=>-1, 'msg'=>'请求方式错误']);
 if($_FILES['file']['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($_FILES['file']['tmp_name']))showresult(['code'=>-1, 'msg'=>'文件上传失败']);
-$name=trim(htmlspecialchars($_FILES['file']['name']));
+$name=pan_normalize_filename($_FILES['file']['name']);
 $size=intval($_FILES['file']['size']);
 $hide = isset($_POST['show']) && $_POST['show']==1?0:1;
 $ispwd = isset($_POST['ispwd']) ? intval($_POST['ispwd']) : 0;
@@ -74,7 +74,6 @@ $pwd = $ispwd==1 && isset($_POST['pwd'])?trim(htmlspecialchars($_POST['pwd'])):n
 $expire_days = pan_normalize_expire_days(isset($_POST['expire_days']) ? $_POST['expire_days'] : 0);
 $expire_at = pan_expire_at_from_days($expire_days);
 $max_downloads = pan_normalize_max_downloads(isset($_POST['max_downloads']) ? $_POST['max_downloads'] : 0);
-$name = str_replace(['/','\\',':','*','"','<','>','|','?'],'',$name);
 if(empty($name))showresult(['code'=>-1, 'msg'=>'文件名不能为空']);
 if(!empty($conf['upload_size']) && $size > intval($conf['upload_size']) * 1024 * 1024)showresult(['code'=>-1, 'msg'=>'上传文件大小超过限制']);
 if($ispwd==1 && !empty($pwd)){
@@ -106,7 +105,7 @@ $hash = md5_file($_FILES['file']['tmp_name']);
 $row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
 if($row){
 	$downurl = $siteurl.'down.php/'.$row['hash'].'.'.$row['type'];
-	if(!empty($row['pwd']))$downurl .= '&'.$row['pwd'];
+	if(!empty($row['pwd']))$downurl = $siteurl.'file.php?hash='.$row['hash'];
 	$result = ['code'=>0, 'msg'=>'本站已存在该文件', 'exists'=>1, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$row['id'], 'downurl'=>$downurl];
 	if(is_view($row['type']))$result['viewurl'] = $siteurl.'view.php/'.$hash.'.'.$row['type'];
 	showresult($result);
@@ -129,7 +128,7 @@ if($conf['videoreview']==1 && in_array($ext,$type_video)){
 }
 
 $downurl = $siteurl.'down.php/'.$hash.'.'.$ext;
-if(!empty($pwd))$downurl .= '&'.$pwd;
+if(!empty($pwd))$downurl = $siteurl.'file.php?hash='.$hash;
 $result = ['code'=>0, 'msg'=>'文件上传成功！', 'exists'=>0, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$id, 'downurl'=>$downurl];
 if(is_view($ext))$result['viewurl'] = $siteurl.'view.php/'.$hash.'.'.$ext;
 showresult($result);

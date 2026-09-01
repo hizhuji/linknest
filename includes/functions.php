@@ -40,8 +40,36 @@ function get_curl($url, $post=0, $referer=0, $cookie=0, $header=0, $ua=0, $nobao
 	curl_close($ch);
 	return $ret;
 }
-function real_ip($type=0){
-$ip = $_SERVER['REMOTE_ADDR'];
+function pan_ip_matches_rule($ip, $rule){
+	$ip = trim((string)$ip);
+	$rule = trim((string)$rule);
+	if($ip === '' || $rule === '') return false;
+	if(strpos($rule, '/') === false) return hash_equals(strtolower($rule), strtolower($ip));
+	list($network, $prefix) = array_pad(explode('/', $rule, 2), 2, null);
+	$ipBinary = @inet_pton($ip);
+	$networkBinary = @inet_pton($network);
+	if($ipBinary === false || $networkBinary === false || strlen($ipBinary) !== strlen($networkBinary)) return false;
+	$prefix = intval($prefix);
+	$maxBits = strlen($ipBinary) * 8;
+	if($prefix < 0 || $prefix > $maxBits) return false;
+	$wholeBytes = intdiv($prefix, 8);
+	$remainingBits = $prefix % 8;
+	if($wholeBytes > 0 && substr($ipBinary, 0, $wholeBytes) !== substr($networkBinary, 0, $wholeBytes)) return false;
+	if($remainingBits === 0) return true;
+	$mask = (0xff << (8 - $remainingBits)) & 0xff;
+	return (ord($ipBinary[$wholeBytes]) & $mask) === (ord($networkBinary[$wholeBytes]) & $mask);
+}
+
+function pan_is_trusted_proxy($ip, $rules){
+	foreach((array)$rules as $rule){
+		if(pan_ip_matches_rule($ip, $rule)) return true;
+	}
+	return false;
+}
+
+function real_ip($type=2, $trustedProxies=[]){
+$ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '0.0.0.0';
+if($type >= 2 || !pan_is_trusted_proxy($ip, $trustedProxies)) return $ip;
 if($type<=0 && isset($_SERVER['HTTP_X_FORWARDED_FOR']) && preg_match_all('#\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}#s', $_SERVER['HTTP_X_FORWARDED_FOR'], $matches)) {
 	foreach ($matches[0] AS $xip) {
 		if (filter_var($xip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
@@ -57,6 +85,19 @@ if($type<=0 && isset($_SERVER['HTTP_X_FORWARDED_FOR']) && preg_match_all('#\d{1,
 	$ip = $_SERVER['HTTP_X_REAL_IP'];
 }
 return $ip;
+}
+
+function pan_normalize_filename($name){
+	$name = trim((string)$name);
+	$name = preg_replace('/[\x00-\x1F\x7F]/u', '', $name);
+	$name = str_replace(['/','\\',':','*','"','<','>','|','?'], '', $name);
+	if(function_exists('mb_substr')) $name = mb_substr($name, 0, 240, 'UTF-8');
+	else $name = substr($name, 0, 240);
+	return trim($name, " .\t\n\r\0\x0B");
+}
+
+function pan_json_for_html($value){
+	return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 }
 function get_ip_city($ip)
 {
@@ -627,7 +668,8 @@ function file_output($hash, $type, $size, $name, $is_view = false, $is_admin = f
 		header("Cache-Control: max-age=$seconds_to_cache");
 	}
 
-	$filename = '"'.$name.'"; filename*=utf-8\'\''.rawurlencode($name);
+	$name = preg_replace('/[\x00-\x1F\x7F]/', '', (string)$name);
+	$filename = '"'.str_replace(['"', '\\'], '', $name).'"; filename*=utf-8\'\''.rawurlencode($name);
 
 	if(\lib\StorHelper::supports_direct_download() && $conf['downfile_type'] == 1){
 		$redirect = $stor->getDownUrl($hash, $name, $is_view ? minetype($type) : null);

@@ -2,16 +2,16 @@
 include("./includes/common.php");
 
 $hash = isset($_GET['hash'])?trim($_GET['hash']):exit();
-$pwd = isset($_GET['pwd'])?trim($_GET['pwd']):null;
+$accessToken = isset($_GET['access'])?trim($_GET['access']):'';
 $row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
 if(!$row)exit('404 Not Found');
 if($row['block']!=0)exit('File is blocked!');
 if($access_error = pan_file_access_error($row))exit(pan_file_access_message($access_error));
-if($row['pwd']!=null && $row['pwd']!=$pwd)exit('Password required');
+if($row['pwd']!=null && !pan_verify_file_access_token($accessToken, $row['hash'], SYS_KEY))exit('Password required');
 $name = $row['name'];
 $type = $row['type'];
 $viewurl_all = $siteurl.'view.php/'.$row['hash'].'.'.$type;
-if(!empty($row['pwd']))$viewurl_all .= '&'.$row['pwd'];
+if(!empty($row['pwd']))$viewurl_all .= '?access='.rawurlencode($accessToken);
 
 $view_type = get_view_type($type);
 
@@ -59,9 +59,9 @@ var ap = new APlayer({
   loop: 'none',
   theme: '#b2dae6',
   audio: [{
-      title: '<?php echo $name?>',
+      title: <?php echo pan_json_for_html($name)?>,
       author: 'none',
-      url: '<?php echo $viewurl_all?>',
+      url: <?php echo pan_json_for_html($viewurl_all)?>,
       cover: './assets/img/music.png',
   }]
 });
@@ -74,8 +74,8 @@ var ap = new APlayer({
   $(".videoplayer").height($(window).height());
   var videoObject = {
     container: '.videoplayer',
-    plug:'<?php echo $plug?>',
-    video:'<?php echo $viewurl_all?>',
+    plug:<?php echo pan_json_for_html($plug)?>,
+    video:<?php echo pan_json_for_html($viewurl_all)?>,
     webFull:true,
   };
   var player=new ckplayer(videoObject);

@@ -18,7 +18,7 @@ switch($act){
 case 'pre_upload':
 	require_csrf_token();
 	if($conf['forcelogin']==1 && !$islogin2)exit('{"code":-1,"msg":"请先登录"}');
-	$name = trim(htmlspecialchars($_POST['name']));
+	$name = pan_normalize_filename($_POST['name']);
 	$hash = trim($_POST['hash']);
 	$size = intval($_POST['size']);
 	$hide = $_POST['show']==1?0:1;
@@ -27,7 +27,6 @@ case 'pre_upload':
 	$expire_days = pan_normalize_expire_days(isset($_POST['expire_days']) ? $_POST['expire_days'] : 0);
 	$expire_at = pan_expire_at_from_days($expire_days);
 	$max_downloads = pan_normalize_max_downloads(isset($_POST['max_downloads']) ? $_POST['max_downloads'] : 0);
-	$name = str_replace(['/','\\',':','*','"','<','>','|','?'],'',$name);
 	if(empty($name))exit('{"code":-1,"msg":"文件名不能为空"}');
 	if(!preg_match('/^[0-9a-z]{32}$/i', $hash))exit('{"code":-1,"msg":"hash error"}');
 	if($ispwd==1 && !empty($pwd)){

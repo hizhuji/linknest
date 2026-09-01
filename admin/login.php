@@ -2,9 +2,7 @@
 /**
  * 登录
 **/
-$verifycode = 1;//验证码开关
-
-if(!function_exists("imagecreate") || !file_exists('code.php'))$verifycode=0;
+$verifycode = 1;
 define('IN_ADMIN', true);
 include("../includes/common.php");
 if(isset($_POST['user']) && isset($_POST['pass'])){
@@ -90,9 +88,13 @@ body{background:linear-gradient(to right,#49bdad,#6a67c7) fixed}
                   <div class="form-group">
                       <i class="fa fa-user"></i><input required name="user" type="text" class="form-control" placeholder="用户名">
                   </div>
-                  <div class="form-group">
-                      <i class="fa fa-lock"></i><input required name="pass" type="password" class="form-control" placeholder="密码"/>
-                  </div>
+				  <div class="form-group">
+					  <i class="fa fa-lock"></i><input required name="pass" type="password" class="form-control" placeholder="密码"/>
+				  </div>
+				  <div class="form-group">
+					  <i class="fa fa-shield"></i><input required name="code" type="text" class="form-control" placeholder="验证码" autocomplete="off" maxlength="5"/>
+					  <img src="code.php" alt="验证码" title="点击更换验证码" style="margin-top:10px;height:44px;cursor:pointer" onclick="this.src='code.php?t='+Date.now()">
+				  </div>
                   <div class="form-group">
                       <button type="submit" class="btn btn-default"><i class="fa fa-arrow-right"></i></button>
                   </div>
