@@ -1,17 +1,22 @@
 {
   "schema": 1,
-  "version": "1640",
-  "version_name": "6.4.0",
+  "version": "1641",
+  "version_name": "6.4.1",
   "released_at": "2026-09-01",
   "min_version": "1601",
   "database_version": "1003",
-  "package_url": "https://codeload.github.com/hizhuji/pan/zip/refs/tags/v6.4.0",
-  "sha256": "e318a35e12ff40b811c1836e424e27b35440e464b175b8d4ff33562e3ae42425",
+  "package_url": "https://raw.githubusercontent.com/hizhuji/pan/main/releases/pan-v6.4.1.zip",
+  "package_urls": [
+    "https://codeload.github.com/hizhuji/pan/zip/refs/tags/v6.4.1"
+  ],
+  "sha256": "dace09513754f9e0d7b90f75e51cfd833f7df1496ddba7a0197f4b123f1c439d",
   "changelog": [
+    "修复部分服务器连接 codeload.github.com 时 TLS 握手失败的问题。",
+    "新增 GitHub Raw 更新包和可信备用下载源，失败时会自动重试。",
+    "更新包下载继续执行 HTTPS 与 SHA-256 完整性校验。",
     "后台左上角名称改为读取网站信息设置中的网站名称。",
     "新增直连 Google 登录和 Sign in with Apple，可与原 QQ、微信登录并存。",
     "新增 WebDAV 挂载网盘，支持 AList、Nextcloud 等标准 WebDAV 服务。",
-    "可通过 AList 间接挂载 Google Drive、OneDrive、阿里云盘等网盘。",
-    "WebDAV 私有文件默认经本站安全中转，配置公开地址后可直接下载。"
+    "可通过 AList 间接挂载 Google Drive、OneDrive、阿里云盘等网盘。"
   ]
 }
