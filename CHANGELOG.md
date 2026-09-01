@@ -1,5 +1,11 @@
 # CHANGELOG
 
+### V6.2.0
+
+1. Added an administrator setting for changing the public site and share-link domain.
+2. Unified generated share, download, preview, player, API, QR-code, and login callback URLs around the configured public address.
+3. Added URL normalization and validation with automatic host detection as the fallback.
+
 ### V6.1.0
 
 1. Added configurable share expiry and maximum access counts for web uploads and the upload API.

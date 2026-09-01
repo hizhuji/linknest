@@ -10,6 +10,7 @@ INSERT INTO `pre_config` VALUES ('admin_user', 'admin');
 INSERT INTO `pre_config` VALUES ('admin_pwd', '');
 INSERT INTO `pre_config` VALUES ('blackip', '');
 INSERT INTO `pre_config` VALUES ('title', '彩虹外链网盘');
+INSERT INTO `pre_config` VALUES ('site_url', '');
 INSERT INTO `pre_config` VALUES ('keywords', '外链网盘,免费外链,免费图床,图片外链');
 INSERT INTO `pre_config` VALUES ('description', '彩虹外链网盘提供大容量云存储服务');
 INSERT INTO `pre_config` VALUES ('iptype', '0');

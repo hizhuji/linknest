@@ -4,7 +4,7 @@ if(defined('IN_CRONLITE'))return;
 define('IN_CRONLITE', true);
 define('SYSTEM_ROOT', dirname(__FILE__).'/');
 define('ROOT', dirname(SYSTEM_ROOT).'/');
-define('VERSION', '1610');
+define('VERSION', '1620');
 define('DB_VERSION', '1003');
 date_default_timezone_set('Asia/Shanghai');
 $date = date("Y-m-d H:i:s");
@@ -54,7 +54,11 @@ if (!$conf['version'] || $conf['version'] < DB_VERSION) {
 
 $scriptpath=str_replace('\\','/',$_SERVER['SCRIPT_NAME']);
 $sitepath = substr($scriptpath, 0, strrpos($scriptpath, '/'));
-$siteurl = (is_https() ? 'https://' : 'http://').$_SERVER['HTTP_HOST'].$sitepath.'/';
+if(defined('IN_ADMIN') && substr($sitepath, -6) === '/admin') $sitepath = substr($sitepath, 0, -6);
+$detected_siteurl = pan_normalize_site_url((is_https() ? 'https://' : 'http://').$_SERVER['HTTP_HOST'].$sitepath.'/');
+if($detected_siteurl === false) $detected_siteurl = '/';
+$configured_siteurl = pan_normalize_site_url(isset($conf['site_url']) ? $conf['site_url'] : '');
+$siteurl = $configured_siteurl !== false && $configured_siteurl !== '' ? $configured_siteurl : $detected_siteurl;
 
 $clientip=real_ip($conf['ip_type']?$conf['ip_type']:0);
 $islogin=0;

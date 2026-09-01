@@ -25,6 +25,13 @@ if($mod=='site'){
 	  <div class="col-sm-10"><input type="text" name="title" value="<?php echo $conf['title']; ?>" class="form-control" required/></div>
 	</div><br/>
 	<div class="form-group">
+	  <label class="col-sm-2 control-label">站点外链地址</label>
+	  <div class="col-sm-10">
+		<input type="text" name="site_url" value="<?php echo htmlspecialchars(isset($conf['site_url']) ? $conf['site_url'] : '', ENT_QUOTES, 'UTF-8'); ?>" class="form-control" placeholder="https://pan.example.com/"/>
+		<p class="help-block">更换域名后填写完整访问地址，可包含安装目录；留空则自动识别。当前自动地址：<?php echo htmlspecialchars($detected_siteurl, ENT_QUOTES, 'UTF-8'); ?></p>
+	  </div>
+	</div><br/>
+	<div class="form-group">
 	  <label class="col-sm-2 control-label">关键字</label>
 	  <div class="col-sm-10"><input type="text" name="keywords" value="<?php echo $conf['keywords']; ?>" class="form-control"/></div>
 	</div><br/>
@@ -61,10 +68,6 @@ if($mod=='site'){
 </div>
 <?php
 }elseif($mod=='api'){
-$scriptpath=str_replace('\\','/',$_SERVER['SCRIPT_NAME']);
-$sitepath = substr($scriptpath, 0, strrpos($scriptpath, '/'));
-$admin_path = substr($sitepath, strrpos($sitepath, '/'));
-$siteurl = (is_https() ? 'https://' : 'http://').$_SERVER['HTTP_HOST'].str_replace($admin_path,'',$sitepath).'/';
 ?>
 <div class="panel panel-primary">
 <div class="panel-heading"><h3 class="panel-title">上传API设置</h3></div>

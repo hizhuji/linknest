@@ -26,6 +26,11 @@ case 'getcount':
 	exit(json_encode($result));
 break;
 case 'set':
+	if(array_key_exists('site_url', $_POST)){
+		$site_url = pan_normalize_site_url($_POST['site_url']);
+		if($site_url === false)exit('{"code":-1,"msg":"站点外链地址格式不正确"}');
+		$_POST['site_url'] = $site_url;
+	}
 	if(isset($_POST['green_label_porn'])){
 		$_POST['green_label_porn'] = implode(',',$_POST['green_label_porn']);
 	}

@@ -675,6 +675,24 @@ function pan_normalize_max_downloads($value) {
 	return max(0, min(1000000, $value));
 }
 
+function pan_normalize_site_url($value) {
+	$value = trim((string)$value);
+	if($value === '') return '';
+	if(!preg_match('#^https?://#i', $value)) $value = 'https://'.$value;
+	$parts = parse_url($value);
+	if(!$parts || empty($parts['scheme']) || empty($parts['host'])) return false;
+	$scheme = strtolower($parts['scheme']);
+	if(!in_array($scheme, ['http', 'https'], true)) return false;
+	if(isset($parts['user']) || isset($parts['pass']) || isset($parts['query']) || isset($parts['fragment'])) return false;
+	$host = strtolower($parts['host']);
+	$isIp = filter_var($host, FILTER_VALIDATE_IP);
+	if(!$isIp && !preg_match('/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i', $host)) return false;
+	$urlHost = filter_var($host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) ? '['.$host.']' : $host;
+	$port = isset($parts['port']) ? ':'.intval($parts['port']) : '';
+	$path = isset($parts['path']) ? '/'.trim($parts['path'], '/') : '';
+	return $scheme.'://'.$urlHost.$port.rtrim($path, '/').'/';
+}
+
 function pan_expire_at_from_days($days, $baseTime = null) {
 	$days = pan_normalize_expire_days($days);
 	if($days === 0) return null;

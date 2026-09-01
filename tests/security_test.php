@@ -31,5 +31,8 @@ expect_true(pan_expire_at_from_days(7, $now) === '2026-09-08 12:00:00', 'Expiry 
 expect_true(pan_file_access_error(['expire_at'=>'2026-09-01 11:59:59', 'count'=>0, 'max_downloads'=>0], $now) === 'expired', 'Expired shares should be rejected.');
 expect_true(pan_file_access_error(['expire_at'=>null, 'count'=>3, 'max_downloads'=>3], $now) === 'limit', 'Shares at their access limit should be rejected.');
 expect_true(pan_file_access_error(['expire_at'=>'2026-09-02 12:00:00', 'count'=>2, 'max_downloads'=>3], $now) === null, 'Active shares below their access limit should be allowed.');
+expect_true(pan_normalize_site_url('pan.example.com') === 'https://pan.example.com/', 'Bare domains should normalize to HTTPS.');
+expect_true(pan_normalize_site_url('https://pan.example.com/files') === 'https://pan.example.com/files/', 'Site paths should be preserved with a trailing slash.');
+expect_true(pan_normalize_site_url('https://user:pass@pan.example.com/') === false, 'Credential-bearing site URLs should be rejected.');
 
 echo "security tests passed" . PHP_EOL;
