@@ -1,20 +1,18 @@
 {
   "schema": 1,
-  "version": "1650",
-  "version_name": "6.5.0",
+  "version": "1670",
+  "version_name": "6.7.0",
   "released_at": "2026-09-01",
   "min_version": "1601",
-  "database_version": "1004",
-  "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.5.0.zip",
-  "package_urls": [
-    "https://codeload.github.com/hizhuji/linknest/zip/refs/tags/v6.5.0"
-  ],
-  "sha256": "60723340ec3df00736151e1c0cd827eb811196ac8d8aa913d34e69017a150283",
+  "database_version": "1008",
+  "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.7.0.zip",
+  "sha256": "ba262d0da11ef05b747425aa263d4e53ed2dba3199fba5ce99cebfc2ffbf1eb3",
   "changelog": [
-    "项目正式更名为 LinkNest 外链云盘，主仓库迁移到 hizhuji/linknest。",
-    "全新安装、后台更新提示和文档统一采用 LinkNest 品牌。",
-    "数据库升级仅替换未修改过的旧默认网站名，管理员自定义名称保持不变。",
-    "README 与安装页明确标注源码基于 netcccyun/pan，并保留 MIT 许可证和原作者版权。",
-    "旧 hizhuji/pan 更新地址继续兼容，现有网站可直接在线升级。"
+    "完成文件实体与分享链接分离，同一文件可创建多个独立短链接。",
+    "新增自定义短码、一次性分享、单独撤销/恢复和脱敏访问日志。",
+    "新增来源域名与客户端防盗链、每分钟请求限制和每日/月流量上限。",
+    "新增公网 HTTPS Webhook 告警，并对同类告警自动去重。",
+    "完成文件名 XSS、密码 URL 暴露、可信代理、数据库升级鉴权和本地目录保护等安全修复。",
+    "升级保留现有文件、账号、设置和旧链接，无需重新安装。"
   ]
 }
