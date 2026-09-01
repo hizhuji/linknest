@@ -1,17 +1,18 @@
 <?php
 include("./includes/common.php");
 
-$hash = isset($_GET['hash'])?trim($_GET['hash']):exit();
+$shareCode = isset($_GET['share'])?trim($_GET['share']):'';
+$hash = isset($_GET['hash'])?trim($_GET['hash']):'';
 $accessToken = isset($_GET['access'])?trim($_GET['access']):'';
-$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
-if(!$row)exit('404 Not Found');
-if($row['block']!=0)exit('File is blocked!');
-if($access_error = pan_file_access_error($row))exit(pan_file_access_message($access_error));
-if($row['pwd']!=null && !pan_verify_file_access_token($accessToken, $row['hash'], SYS_KEY))exit('Password required');
+$share = $shareCode !== '' ? pan_get_share_by_code($DB, $shareCode) : pan_get_default_share_by_hash($DB, $hash);
+if(!$share)exit('404 Not Found');
+$row = $share;
+if($access_error = pan_share_access_error($share))exit(pan_share_access_message($access_error));
+if($share['password']!=null && !pan_verify_share_access_token($accessToken, $share, SYS_KEY))exit('Password required');
 $name = $row['name'];
 $type = $row['type'];
-$viewurl_all = $siteurl.'view.php/'.$row['hash'].'.'.$type;
-if(!empty($row['pwd']))$viewurl_all .= '?access='.rawurlencode($accessToken);
+$viewurl_all = $siteurl.'view.php/'.$row['hash'].'.'.$type.'?share='.rawurlencode($share['code']);
+if(!empty($share['password']))$viewurl_all .= '&access='.rawurlencode($accessToken);
 
 $view_type = get_view_type($type);
 

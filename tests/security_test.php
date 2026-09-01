@@ -2,6 +2,7 @@
 
 require __DIR__ . '/../includes/security.php';
 require __DIR__ . '/../includes/functions.php';
+require __DIR__ . '/../includes/shares.php';
 require __DIR__ . '/../includes/updater.php';
 
 function expect_true($value, $message) {
@@ -35,6 +36,15 @@ $fileToken = pan_create_file_access_token('abc123', $key, 60);
 expect_true(pan_verify_file_access_token($fileToken, 'abc123', $key), 'File access token should validate for its file.');
 expect_true(!pan_verify_file_access_token($fileToken, 'other', $key), 'File access token must not authorize another file.');
 
+expect_true(pan_share_code_is_valid('Abc_123-x'), 'Share codes should allow URL-safe characters.');
+expect_true(!pan_share_code_is_valid('bad code'), 'Share codes should reject spaces.');
+$sharePassword = pan_share_password_hash('share-secret');
+expect_true(pan_share_password_verify('share-secret', $sharePassword), 'Share password hashes should validate.');
+expect_true(!pan_share_password_verify('wrong', $sharePassword), 'Wrong share passwords should fail.');
+$shareToken = pan_create_share_access_token(['id'=>12, 'code'=>'Abc_123-x'], $key, 60);
+expect_true(pan_verify_share_access_token($shareToken, ['id'=>12, 'code'=>'Abc_123-x'], $key), 'Share access tokens should be bound to a share.');
+expect_true(!pan_verify_share_access_token($shareToken, ['id'=>13, 'code'=>'Abc_123-x'], $key), 'Share access tokens must not authorize another share.');
+
 $hash = password_hash('correct horse battery staple', PASSWORD_DEFAULT);
 expect_true(pan_verify_admin_password('correct horse battery staple', $hash), 'Password hash should validate.');
 expect_true(!pan_verify_admin_password('incorrect', $hash), 'Wrong password should fail.');
@@ -44,6 +54,9 @@ expect_true(pan_expire_at_from_days(7, $now) === '2026-09-08 12:00:00', 'Expiry 
 expect_true(pan_file_access_error(['expire_at'=>'2026-09-01 11:59:59', 'count'=>0, 'max_downloads'=>0], $now) === 'expired', 'Expired shares should be rejected.');
 expect_true(pan_file_access_error(['expire_at'=>null, 'count'=>3, 'max_downloads'=>3], $now) === 'limit', 'Shares at their access limit should be rejected.');
 expect_true(pan_file_access_error(['expire_at'=>'2026-09-02 12:00:00', 'count'=>2, 'max_downloads'=>3], $now) === null, 'Active shares below their access limit should be allowed.');
+expect_true(pan_share_access_error(['status'=>0, 'block'=>0, 'expire_at'=>null, 'max_accesses'=>0, 'access_count'=>0], $now) === 'revoked', 'Revoked shares should be rejected.');
+expect_true(pan_share_access_error(['status'=>1, 'block'=>0, 'expire_at'=>'2026-09-01 11:59:59', 'max_accesses'=>0, 'access_count'=>0], $now) === 'expired', 'Expired share records should be rejected.');
+expect_true(pan_share_access_error(['status'=>1, 'block'=>0, 'expire_at'=>null, 'max_accesses'=>1, 'access_count'=>1], $now) === 'limit', 'Shares at their access limit should be rejected.');
 expect_true(pan_normalize_site_url('pan.example.com') === 'https://pan.example.com/', 'Bare domains should normalize to HTTPS.');
 expect_true(pan_normalize_site_url('https://pan.example.com/files') === 'https://pan.example.com/files/', 'Site paths should be preserved with a trailing slash.');
 expect_true(pan_normalize_site_url('https://user:pass@pan.example.com/') === false, 'Credential-bearing site URLs should be rejected.');

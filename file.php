@@ -1,18 +1,20 @@
 <?php
 include("./includes/common.php");
 
-$hash = isset($_GET['hash'])?$_GET['hash']:exit("<script language='javascript'>window.location.href='./';</script>");
+$shareCode = isset($_GET['share']) ? trim($_GET['share']) : '';
+$hash = isset($_GET['hash']) ? trim($_GET['hash']) : '';
 $accessToken = isset($_GET['access']) ? trim($_GET['access']) : '';
-$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
+$share = $shareCode !== '' ? pan_get_share_by_code($DB, $shareCode) : pan_get_default_share_by_hash($DB, $hash);
+if(!$share)exit("<script language='javascript'>alert('分享不存在');window.location.href='./';</script>");
+$shareCode = $share['code'];
+$row = $DB->getRow("SELECT * FROM pre_file WHERE id=:id", [':id'=>intval($share['file_id'])]);
 if(!$row)exit("<script language='javascript'>alert('文件不存在');window.location.href='./';</script>");
-$is_mine = false;
-if(($islogin2 && $row['uid']==$uid) || (!$islogin2 && isset($_SESSION['fileids']) && in_array($row['id'], $_SESSION['fileids']) && strtotime($row['addtime'])>strtotime("-7 days"))){
-  $is_mine = true;
-}
-$access_error = pan_file_access_error($row);
+$hash = $row['hash'];
+$is_mine = pan_share_is_owner($share, $islogin, $islogin2, $uid, isset($_SESSION['shareids']) ? $_SESSION['shareids'] : []);
+$access_error = pan_share_access_error($share);
 if($access_error && !$is_mine && !$islogin){
   http_response_code(410);
-  sysmsg(pan_file_access_message($access_error), '分享不可用');
+  sysmsg(pan_share_access_message($access_error), '分享不可用');
 }
 
 $title = '文件查看 - '.$conf['title'];
@@ -23,18 +25,18 @@ $csrf_token = pan_csrf_token();
 $name = $row['name'];
 $type = $row['type'];
 
-$downurl = 'down.php/'.$row['hash'].'.'.$type;
-$viewurl = 'view.php/'.$row['hash'].'.'.$type;
+$downurl = 'down.php/'.$row['hash'].'.'.$type.'?share='.rawurlencode($shareCode);
+$viewurl = 'view.php/'.$row['hash'].'.'.$type.'?share='.rawurlencode($shareCode);
 
 $downurl_all = $siteurl.$downurl;
 $viewurl_all = $siteurl.$viewurl;
-$playerurl_all = $siteurl.'player.php?hash='.rawurlencode($hash);
+$playerurl_all = $siteurl.'player.php?share='.rawurlencode($shareCode);
 
-$thisurl = $siteurl.'file.php?hash='.$row['hash'];
+$thisurl = $siteurl.'s.php?code='.rawurlencode($shareCode);
 
 $view_type = get_view_type($type);
-$expire_text = empty($row['expire_at']) ? '永久有效' : $row['expire_at'];
-$max_downloads_text = intval($row['max_downloads']) > 0 ? intval($row['max_downloads']).' 次' : '不限次数';
+$expire_text = empty($share['expire_at']) ? '永久有效' : $share['expire_at'];
+$max_downloads_text = intval($share['max_accesses']) > 0 ? intval($share['max_accesses']).' 次' : '不限次数';
 
 if($view_type == 'image'){
   $filetype = 1;
@@ -70,19 +72,19 @@ if($view_type == 'image'){
 <div class="container">
     <div class="row">
 <?php
-if($row['pwd']!=null){
+if($share['password']!=null){
   if($_SERVER['REQUEST_METHOD'] === 'POST'){
     if(!pan_verify_request_csrf_token()){
       http_response_code(403);
       sysmsg('页面已过期，请刷新后重试。');
     }
     $submittedPassword = isset($_POST['pwd']) ? (string)$_POST['pwd'] : '';
-    if(hash_equals((string)$row['pwd'], $submittedPassword)) $accessToken = pan_create_file_access_token($row['hash'], SYS_KEY);
+    if(pan_share_password_verify($submittedPassword, $share['password'])) $accessToken = pan_create_share_access_token($share, SYS_KEY);
   }
-  if(!pan_verify_file_access_token($accessToken, $row['hash'], SYS_KEY)){ ?>
+  if(!pan_verify_share_access_token($accessToken, $share, SYS_KEY)){ ?>
   <meta http-equiv="content-type" content="text/html;charset=utf-8"/>
   <div class="panel panel-default"><div class="panel-heading"><h3 class="panel-title">请输入提取密码</h3></div><div class="panel-body">
-  <form method="post" action="file.php?hash=<?php echo rawurlencode($row['hash'])?>">
+  <form method="post" action="file.php?share=<?php echo rawurlencode($shareCode)?>">
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8')?>">
     <div class="form-group"><input class="form-control" type="password" name="pwd" autocomplete="off" required></div>
     <button class="btn btn-primary" type="submit">验证并查看文件</button>
@@ -90,7 +92,7 @@ if($row['pwd']!=null){
 <?php
     exit;
   }
-  $accessQuery = '?access='.rawurlencode($accessToken);
+  $accessQuery = '&access='.rawurlencode($accessToken);
   $downurl .= $accessQuery;
   $viewurl .= $accessQuery;
   $downurl_all = $siteurl.$downurl;
@@ -122,7 +124,7 @@ if($row['pwd']!=null){
 <div class="panel-body" align="center">
 <?php
 if($access_error){
-  echo '<div class="view"><div class="elseview"><div class="tubiao"><i class="fa fa-clock-o"></i></div></div><div class="elsetext"><p>'.htmlspecialchars(pan_file_access_message($access_error), ENT_QUOTES, 'UTF-8').'</p><p>你可以在下方管理区域重新设置有效期或访问次数。</p></div></div>';
+  echo '<div class="view"><div class="elseview"><div class="tubiao"><i class="fa fa-clock-o"></i></div></div><div class="elsetext"><p>'.htmlspecialchars(pan_share_access_message($access_error), ENT_QUOTES, 'UTF-8').'</p><p>你可以在下方管理区域重新设置有效期或访问次数。</p></div></div>';
 }elseif($filetype==1){
   echo '<div class="image_view"><a href="'.$viewurl.'" title="点击查看原图"><img alt="loading" src="'.$viewurl.'" class="image"></a></div>';
 }elseif($filetype==2){
@@ -229,7 +231,7 @@ if($access_error){
                                   <th width="100">上传时间：</td><td width="168"><?php echo $row['addtime']?></td>
                               </tr>
                               <tr>
-                                  <th>访问次数：</td><td><?php echo $row['count']?></td>
+                                  <th>访问次数：</td><td><?php echo intval($share['access_count'])?></td>
                                   <th>文件大小：</td><td><?php echo size_format($row['size']).' ('.$row['size'].' 字节)'?></td>
                               </tr>
                               <tr>
@@ -242,7 +244,7 @@ if($access_error){
                   <div class="tab-pane fade" id="manager">
                       <div class="row" align="center">
                           <div class="col-md-12">
-                            <input type="hidden" id="hash" name="hash" value="<?php echo $hash?>">
+                            <input type="hidden" id="share_code" name="share_code" value="<?php echo htmlspecialchars($shareCode, ENT_QUOTES, 'UTF-8')?>">
                             <input type="hidden" id="csrf_token" name="csrf_token" value="<?php echo $csrf_token?>">
                             <div class="row" style="margin-bottom:15px;text-align:left;">
                               <div class="col-sm-6">
@@ -256,8 +258,8 @@ if($access_error){
                               </div>
                               <div class="col-sm-6">
                                 <label for="access_max_downloads">最大访问次数</label>
-                                <input type="number" class="form-control" id="access_max_downloads" min="0" max="1000000" value="<?php echo intval($row['max_downloads'])?>">
-                                <p class="help-block">当前已访问 <?php echo intval($row['count'])?> 次，0 表示不限次数</p>
+                                <input type="number" class="form-control" id="access_max_downloads" min="0" max="1000000" value="<?php echo intval($share['max_accesses'])?>">
+                                <p class="help-block">当前已访问 <?php echo intval($share['access_count'])?> 次，0 表示不限次数</p>
                               </div>
                             </div>
                             <button onclick="update_access_policy()" class="btn btn-raised btn-primary"><i class="fa fa-clock-o" aria-hidden="true"></i> 更新分享策略</button>
@@ -323,13 +325,13 @@ var ap = new APlayer({
 <script src="https://s4.zstatic.net/ajax/libs/clipboard.js/1.7.1/clipboard.min.js"></script>
 <script>
 function update_access_policy(){
-  var hash = $("#hash").val();
+  var share_code = $("#share_code").val();
   var csrf_token = $("#csrf_token").val();
   $.ajax({
     type: 'POST',
     url: 'ajax.php?act=updateAccessPolicy',
     data: {
-      hash: hash,
+      share_code: share_code,
       csrf_token: csrf_token,
       expire_days: $("#access_expire_days").val(),
       max_downloads: $("#access_max_downloads").val()
@@ -346,7 +348,7 @@ function update_access_policy(){
   });
 }
 function delete_confirm(){
-  var hash = $("#hash").val();
+  var share_code = $("#share_code").val();
   var csrf_token = $("#csrf_token").val();
   var confirmobj = layer.confirm('删除文件后不可恢复，确定删除吗？', {
 	  btn: ['确定','取消'], icon: 0
@@ -355,7 +357,7 @@ function delete_confirm(){
 	  $.ajax({
       type : 'POST',
       url : 'ajax.php?act=deleteFile',
-      data : {hash:hash, csrf_token:csrf_token},
+      data : {share_code:share_code, csrf_token:csrf_token},
       dataType : 'json',
       success : function(data) {
         layer.close(ii);

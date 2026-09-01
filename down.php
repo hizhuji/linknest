@@ -13,26 +13,27 @@ if(strpos($url,".")){
     $hash=$url;
 }
 
-$row = $DB->getRow("SELECT * FROM `pre_file` WHERE `hash`=:hash limit 1", [':hash'=>$hash]);
-if(!$row)exit('404 Not Found');
-if($row['block']>=1)exit('File is blocked!');
-$access_error = pan_file_access_error($row);
+$shareCode = isset($_GET['share']) ? trim($_GET['share']) : '';
+$share = $shareCode !== '' ? pan_get_share_by_code($DB, $shareCode) : pan_get_default_share_by_hash($DB, $hash);
+if(!$share || !hash_equals((string)$share['hash'], (string)$hash))exit('404 Not Found');
+$row = $share;
+$access_error = pan_share_access_error($share);
 if($access_error){
     http_response_code(410);
-    exit(pan_file_access_message($access_error));
+    exit(pan_share_access_message($access_error));
 }
 
 $accessToken = isset($_GET['access']) ? trim($_GET['access']) : '';
-if($row['pwd']!=null && !pan_verify_file_access_token($accessToken, $row['hash'], SYS_KEY)){
-    header('Location: '.$siteurl.'file.php?hash='.rawurlencode($row['hash']));
+if($share['password']!=null && !pan_verify_share_access_token($accessToken, $share, SYS_KEY)){
+    header('Location: '.$siteurl.'file.php?share='.rawurlencode($share['code']));
     exit;
 }
 
 if($stor->exists($hash))
 {
-    if(!pan_record_file_access($DB, $row)){
+    if(!pan_record_share_access($DB, $share)){
         http_response_code(410);
-        exit(pan_file_access_message('limit'));
+        exit(pan_share_access_message('limit'));
     }
 
     file_output($hash, $row['type'], $row['size'], $row['name']);

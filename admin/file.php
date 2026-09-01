@@ -270,13 +270,14 @@ function editframe(id){
 				$("#form-store #hide").val(data.hide);
 				$("#form-store #expire_at").val(data.expire_at ? data.expire_at.replace(' ', 'T').substring(0, 16) : '');
 				$("#form-store #max_downloads").val(data.max_downloads || 0);
-				if(data.pwd==null||data.pwd==""){
+				if(!data.has_password){
 					$("#form-store #ispwd").val(0);
 					$("#form-store #pwd").val("");
 					$('#pwd_frame').hide()
 				}else{
 					$("#form-store #ispwd").val(1);
-					$("#form-store #pwd").val(data.pwd);
+					$("#form-store #pwd").val("");
+					$("#form-store #pwd").attr("placeholder", "留空表示保留原密码");
 					$('#pwd_frame').show()
 				}
 			}else{

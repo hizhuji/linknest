@@ -133,7 +133,7 @@ new Vue({
             this.isBlock = true;
             if(result.code == 1){
                 this.progress = 100;
-                this.uploadSuccess(result.hash);
+                this.uploadSuccess(result);
                 return;
             }
 
@@ -177,7 +177,7 @@ new Vue({
                     }
                 }
             }
-            this.uploadSuccess(result.hash);
+            this.uploadSuccess(result);
         },
         async preUpload(){ //文件预上传，极速秒传查询
             var postData = {
@@ -362,12 +362,9 @@ new Vue({
                 };
             })
         },
-        uploadSuccess(hash){
+        uploadSuccess(result){
             var lastTime = (new Date().getTime() - this.beginTime) / 1000;
-            var jumpurl = "file.php?hash="+hash;
-            if(this.input.ispwd && this.input.pwd!=''){
-                jumpurl+='&pwd='+this.input.pwd;
-            }
+            var jumpurl = result.pageurl || ("s.php?code=" + encodeURIComponent(result.share_code || ''));
             this.show_msg('上传成功！总用时：'+lastTime.toFixed(2)+'秒。正在跳转到文件查看页面...');
             setTimeout(function(){ window.location.href=jumpurl; }, 800);
         },

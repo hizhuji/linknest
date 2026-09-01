@@ -42,10 +42,7 @@ function UploadFile(fileObj) {
         try{
             var json = JSON.parse(data);
             if(json.code == 0){
-				var jumpurl = "file.php?hash="+json.hash;
-				if($("#ispwd").prop('checked') && $("#pwd").val()!=''){
-					jumpurl+='&pwd='+$("#pwd").val();
-				}
+				var jumpurl = json.pageurl || ("s.php?code=" + encodeURIComponent(json.share_code || ''));
                 show_msg('上传成功！总用时：'+nt.toFixed(2)+'秒。正在跳转到文件查看页面...');
                 setTimeout(function(){ window.location.href=jumpurl; }, 800);
             }else{

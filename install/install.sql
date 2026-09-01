@@ -5,7 +5,7 @@ create table `pre_config` (
   PRIMARY KEY  (`k`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `pre_config` VALUES ('version', '1005');
+INSERT INTO `pre_config` VALUES ('version', '1006');
 INSERT INTO `pre_config` VALUES ('admin_user', 'admin');
 INSERT INTO `pre_config` VALUES ('admin_pwd', '');
 INSERT INTO `pre_config` VALUES ('blackip', '');
@@ -94,4 +94,23 @@ CREATE TABLE `pre_rate_limit` (
   `attempts` smallint(5) unsigned NOT NULL DEFAULT '0',
   `window_start` int(10) unsigned NOT NULL,
   PRIMARY KEY (`bucket`,`ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `pre_share` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `file_id` int(11) unsigned NOT NULL,
+  `code` varchar(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `expire_at` datetime DEFAULT NULL,
+  `max_accesses` int(11) unsigned NOT NULL DEFAULT '0',
+  `access_count` int(11) unsigned NOT NULL DEFAULT '0',
+  `status` tinyint(1) NOT NULL DEFAULT '1',
+  `one_time` tinyint(1) NOT NULL DEFAULT '0',
+  `created_by_uid` int(11) unsigned NOT NULL DEFAULT '0',
+  `created_at` datetime NOT NULL,
+  `last_access_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `code` (`code`),
+  KEY `file_id` (`file_id`),
+  KEY `owner_status` (`created_by_uid`,`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

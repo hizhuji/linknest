@@ -62,7 +62,9 @@ case 'fileList':
 
 		$row['fileurl'] = './down.php/'.$row['hash'].'.'.($row['type']?$row['type']:'file');
 		$row['viewurl'] = './view.php/'.$row['hash'].'.'.($row['type']?$row['type']:'file');
-		$row['pageurl'] = '../file.php?hash='.$row['hash'];
+		$share = pan_get_default_share_by_hash($DB, $row['hash']);
+		$row['pageurl'] = $share ? '../s.php?code='.rawurlencode($share['code']) : '';
+		$row['share_count'] = intval($DB->getColumn("SELECT count(*) FROM pre_share WHERE file_id=:file_id", [':file_id'=>intval($row['id'])]));
 
 		$list2[] = $row;
 	}
@@ -82,6 +84,7 @@ case 'delFile':
 	if(!$row)
 		exit('{"code":-1,"msg":"当前文件不存在！"}');
 	$result = $stor->delete($row['hash']);
+	$DB->exec("DELETE FROM pre_share WHERE file_id='$id'");
 	$sql = "DELETE FROM pre_file WHERE id='$id'";
 	if($DB->exec($sql))exit('{"code":0,"msg":"删除文件成功！"}');
 	else exit('{"code":-1,"msg":"删除文件失败['.$DB->error().']"}');
@@ -99,6 +102,7 @@ case 'operation':
 		if($status == 0){
 			$hash=$DB->getColumn("select hash from pre_file where id='$id' limit 1");
 			$stor->delete($hash);
+			$DB->exec("DELETE FROM pre_share WHERE file_id='$id'");
 			$DB->exec("DELETE FROM pre_file WHERE id='$id'");
 		}elseif($status == 1){
 			$DB->exec("UPDATE pre_file SET `block`=1 WHERE id='$id'");
@@ -114,8 +118,13 @@ case 'getFileInfo':
 	$row=$DB->getRow("select * from pre_file where id='$id' limit 1");
 	if(!$row)
 		exit('{"code":-1,"msg":"当前文件不存在！"}');
+	$share = pan_get_default_share_by_hash($DB, $row['hash']);
 	$row['code'] = 0;
 	$row['size2'] = size_format($row['size']);
+	$row['has_password'] = $share && !empty($share['password']);
+	$row['pwd'] = '';
+	$row['expire_at'] = $share ? $share['expire_at'] : null;
+	$row['max_downloads'] = $share ? intval($share['max_accesses']) : 0;
 	exit(json_encode($row));
 break;
 case 'saveFileInfo':
@@ -125,7 +134,7 @@ case 'saveFileInfo':
 	if(!preg_match('/^[a-z0-9]{1,50}$/', $type))exit('{"code":-1,"msg":"文件类型格式不正确"}');
 	$hide = intval($_POST['hide']);
 	$ispwd = intval($_POST['ispwd']);
-	$pwd = $ispwd==1?trim(htmlspecialchars($_POST['pwd'])):null;
+	$pwd = $ispwd==1 ? trim((string)$_POST['pwd']) : null;
 	$expire_at_input = isset($_POST['expire_at']) ? trim($_POST['expire_at']) : '';
 	$expire_at = null;
 	if($expire_at_input !== ''){
@@ -140,9 +149,24 @@ case 'saveFileInfo':
 			exit('{"code":-1,"msg":"下载密码只能为字母和数字"}');
         }
 	}
-	$data = [':id'=>$id, ':name'=>$name, ':type'=>$type, ':hide'=>$hide, ':pwd'=>$pwd, ':expire_at'=>$expire_at, ':max_downloads'=>$max_downloads];
-	$sql = "UPDATE `pre_file` SET `name`=:name,`type`=:type,`hide`=:hide,`pwd`=:pwd,`expire_at`=:expire_at,`max_downloads`=:max_downloads WHERE `id`=:id";
-	if($DB->exec($sql, $data)!==false)exit('{"code":0,"msg":"修改文件信息成功！"}');
+	$file = $DB->getRow("SELECT * FROM pre_file WHERE id=:id LIMIT 1", [':id'=>$id]);
+	if(!$file)exit('{"code":-1,"msg":"当前文件不存在！"}');
+	$share = pan_get_default_share_by_hash($DB, $file['hash']);
+	$data = [':id'=>$id, ':name'=>$name, ':type'=>$type, ':hide'=>$hide];
+	$sql = "UPDATE `pre_file` SET `name`=:name,`type`=:type,`hide`=:hide WHERE `id`=:id";
+	$result = $DB->exec($sql, $data);
+	if($result!==false && $share){
+		$shareData = [':id'=>intval($share['id']), ':expire_at'=>$expire_at, ':max_accesses'=>$max_downloads];
+		$passwordSql = '';
+		if($ispwd===0){
+			$passwordSql = ',`password`=NULL';
+		}elseif($pwd!==''){
+			$passwordSql = ',`password`=:password';
+			$shareData[':password'] = pan_share_password_hash($pwd);
+		}
+		$result = $DB->exec("UPDATE pre_share SET expire_at=:expire_at,max_accesses=:max_accesses{$passwordSql} WHERE id=:id", $shareData);
+	}
+	if($result!==false)exit('{"code":0,"msg":"修改文件信息成功！"}');
 	else exit('{"code":-1,"msg":"修改文件信息失败['.$DB->error().']"}');
 break;
 default:

@@ -104,10 +104,10 @@ if(!empty($conf['upload_limit'])){
 $hash = md5_file($_FILES['file']['tmp_name']);
 $row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
 if($row){
-	$downurl = $siteurl.'down.php/'.$row['hash'].'.'.$row['type'];
-	if(!empty($row['pwd']))$downurl = $siteurl.'file.php?hash='.$row['hash'];
-	$result = ['code'=>0, 'msg'=>'本站已存在该文件', 'exists'=>1, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$row['id'], 'downurl'=>$downurl];
-	if(is_view($row['type']))$result['viewurl'] = $siteurl.'view.php/'.$hash.'.'.$row['type'];
+	$share = pan_create_share($DB, $row['id'], ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>0]);
+	if(!$share)showresult(['code'=>-1, 'msg'=>'创建分享链接失败']);
+	$pageurl = $siteurl.'s.php?code='.$share['code'];
+	$result = ['code'=>0, 'msg'=>'文件已秒传并创建独立分享', 'exists'=>1, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$row['id'], 'share_code'=>$share['code'], 'downurl'=>$pageurl, 'pageurl'=>$pageurl];
 	showresult($result);
 }
 $result = $stor->upload($hash, $_FILES['file']['tmp_name'], minetype($ext));
@@ -115,6 +115,8 @@ if(!$result)showresult(['code'=>-1, 'msg'=>'文件上传失败', 'error'=>'stor'
 $sds = $DB->exec("INSERT INTO `pre_file` (`name`,`type`,`size`,`hash`,`addtime`,`ip`,`hide`,`pwd`,`expire_at`,`max_downloads`) values (:name,:type,:size,:hash,NOW(),:ip,:hide,:pwd,:expire_at,:max_downloads)", [':name'=>$name, ':type'=>$ext, ':size'=>$size, ':hash'=>$hash, ':ip'=>$clientip, ':hide'=>$hide, ':pwd'=>$pwd, ':expire_at'=>$expire_at, ':max_downloads'=>$max_downloads]);
 if(!$sds)showresult(['code'=>-1, 'msg'=>'上传失败'.$DB->error(), 'error'=>'database']);
 $id = $DB->lastInsertId();
+$share = pan_create_share($DB, $id, ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>0]);
+if(!$share)showresult(['code'=>-1, 'msg'=>'文件已保存，但创建分享链接失败']);
 
 $type_image = explode('|',$conf['type_image']);
 $type_video = explode('|',$conf['type_video']);
@@ -127,8 +129,6 @@ if($conf['videoreview']==1 && in_array($ext,$type_video)){
 	$DB->exec("UPDATE `pre_file` SET `block`=2 WHERE `id`='{$id}' LIMIT 1");
 }
 
-$downurl = $siteurl.'down.php/'.$hash.'.'.$ext;
-if(!empty($pwd))$downurl = $siteurl.'file.php?hash='.$hash;
-$result = ['code'=>0, 'msg'=>'文件上传成功！', 'exists'=>0, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$id, 'downurl'=>$downurl];
-if(is_view($ext))$result['viewurl'] = $siteurl.'view.php/'.$hash.'.'.$ext;
+$pageurl = $siteurl.'s.php?code='.$share['code'];
+$result = ['code'=>0, 'msg'=>'文件上传成功！', 'exists'=>0, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$id, 'share_code'=>$share['code'], 'downurl'=>$pageurl, 'pageurl'=>$pageurl];
 showresult($result);

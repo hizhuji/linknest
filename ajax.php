@@ -66,8 +66,11 @@ case 'pre_upload':
 	}
 	$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
 	if($row){
+		$share = pan_create_share($DB, $row['id'], ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>($uid?$uid:0)]);
+		if(!$share)exit('{"code":-1,"msg":"创建分享链接失败"}');
+		$_SESSION['shareids'][] = intval($share['id']);
 		unset($_SESSION['csrf_token']);
-		$result = ['code'=>1, 'msg'=>'本站已存在该文件', 'exists'=>1, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$row['id']];
+		$result = ['code'=>1, 'msg'=>'文件已秒传并创建独立分享', 'exists'=>1, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$row['id'], 'share_code'=>$share['code'], 'pageurl'=>$siteurl.'s.php?code='.$share['code']];
 		exit(json_encode($result));
 	}
 
@@ -156,15 +159,20 @@ case 'upload_part':
 
 	$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
 	if($row){
+		$share = pan_create_share($DB, $row['id'], ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>($uid?$uid:0)]);
+		if(!$share)exit('{"code":-1,"msg":"创建分享链接失败"}');
+		$_SESSION['shareids'][] = intval($share['id']);
 		unset($_SESSION['csrf_token']);
 		unset($_SESSION['upload']);
-		$result = ['code'=>1, 'msg'=>'本站已存在该文件', 'exists'=>1, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$row['id']];
+		$result = ['code'=>1, 'msg'=>'文件已秒传并创建独立分享', 'exists'=>1, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$row['id'], 'share_code'=>$share['code'], 'pageurl'=>$siteurl.'s.php?code='.$share['code']];
 		exit(json_encode($result));
 	}
 
 	$sds = $DB->exec("INSERT INTO `pre_file` (`name`,`type`,`size`,`hash`,`addtime`,`ip`,`hide`,`pwd`,`expire_at`,`max_downloads`,`uid`) values (:name,:type,:size,:hash,NOW(),:ip,:hide,:pwd,:expire_at,:max_downloads,:uid)", [':name'=>$name, ':type'=>$ext, ':size'=>$size, ':hash'=>$hash, ':ip'=>$clientip, ':hide'=>$hide, ':pwd'=>$pwd, ':expire_at'=>$expire_at, ':max_downloads'=>$max_downloads, ':uid'=>($uid?$uid:0)]);
 	if(!$sds)exit('{"code":-1,"msg":"上传失败'.$DB->error().'","error":"database"}');
 	$id = $DB->lastInsertId();
+	$share = pan_create_share($DB, $id, ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>($uid?$uid:0)]);
+	if(!$share)exit('{"code":-1,"msg":"文件已保存，但创建分享链接失败"}');
 
 	$type_image = explode('|',$conf['type_image']);
 	$type_video = explode('|',$conf['type_video']);
@@ -178,9 +186,10 @@ case 'upload_part':
 	}
 	
 	$_SESSION['fileids'][] = $id;
+	$_SESSION['shareids'][] = intval($share['id']);
 	unset($_SESSION['csrf_token']);
 	unset($_SESSION['upload']);
-	$result = ['code'=>1, 'msg'=>'文件上传成功！', 'exists'=>0, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$id];
+	$result = ['code'=>1, 'msg'=>'文件上传成功！', 'exists'=>0, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$id, 'share_code'=>$share['code'], 'pageurl'=>$siteurl.'s.php?code='.$share['code']];
 	exit(json_encode($result));
 break;
 
@@ -207,15 +216,20 @@ case 'complete_upload':
 
 	$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
 	if($row){
+		$share = pan_create_share($DB, $row['id'], ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>($uid?$uid:0)]);
+		if(!$share)exit('{"code":-1,"msg":"创建分享链接失败"}');
+		$_SESSION['shareids'][] = intval($share['id']);
 		unset($_SESSION['csrf_token']);
 		unset($_SESSION['upload']);
-		$result = ['code'=>1, 'msg'=>'本站已存在该文件', 'exists'=>1, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$row['id']];
+		$result = ['code'=>1, 'msg'=>'文件已秒传并创建独立分享', 'exists'=>1, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$row['id'], 'share_code'=>$share['code'], 'pageurl'=>$siteurl.'s.php?code='.$share['code']];
 		exit(json_encode($result));
 	}
 
 	$sds = $DB->exec("INSERT INTO `pre_file` (`name`,`type`,`size`,`hash`,`addtime`,`ip`,`hide`,`pwd`,`expire_at`,`max_downloads`,`uid`) values (:name,:type,:size,:hash,NOW(),:ip,:hide,:pwd,:expire_at,:max_downloads,:uid)", [':name'=>$name, ':type'=>$ext, ':size'=>$size, ':hash'=>$hash, ':ip'=>$clientip, ':hide'=>$hide, ':pwd'=>$pwd, ':expire_at'=>$expire_at, ':max_downloads'=>$max_downloads, ':uid'=>($uid?$uid:0)]);
 	if(!$sds)exit('{"code":-1,"msg":"上传失败'.$DB->error().'","error":"database"}');
 	$id = $DB->lastInsertId();
+	$share = pan_create_share($DB, $id, ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>($uid?$uid:0)]);
+	if(!$share)exit('{"code":-1,"msg":"文件已保存，但创建分享链接失败"}');
 
 	$type_image = explode('|',$conf['type_image']);
 	$type_video = explode('|',$conf['type_video']);
@@ -229,38 +243,35 @@ case 'complete_upload':
 	}
 	
 	$_SESSION['fileids'][] = $id;
+	$_SESSION['shareids'][] = intval($share['id']);
 	unset($_SESSION['csrf_token']);
 	unset($_SESSION['upload']);
-	$result = ['code'=>1, 'msg'=>'文件上传成功！', 'exists'=>0, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$id];
+	$result = ['code'=>1, 'msg'=>'文件上传成功！', 'exists'=>0, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$id, 'share_code'=>$share['code'], 'pageurl'=>$siteurl.'s.php?code='.$share['code']];
 	exit(json_encode($result));
 break;
 
 case 'deleteFile':
-	$hash = isset($_POST['hash'])?trim($_POST['hash']):exit('{"code":-1,"msg":"no hash"}');
+	$shareCode = isset($_POST['share_code']) ? trim($_POST['share_code']) : exit('{"code":-1,"msg":"缺少分享码"}');
 	require_csrf_token();
-	if(!preg_match('/^[0-9a-z]{32}$/i', $hash))exit('{"code":-1,"msg":"hash error"}');
-	$row = $DB->getRow("SELECT * FROM `pre_file` WHERE `hash`=:hash", [':hash'=>$hash]);
-	if(!$row)exit('{"code":-1,"msg":"文件不存在"}');
-	if($islogin2 && $row['uid']!=$uid || !$islogin2 && (!isset($_SESSION['fileids']) || !in_array($row['id'], $_SESSION['fileids'])))exit('{"code":-1,"msg":"无权限"}');
-	if($row['block']==1)exit('{"code":-1,"msg":"文件已被冻结，无法删除"}');
-	if(!$islogin2 && strtotime($row['addtime'])<strtotime("-7 days"))exit('{"code":-1,"msg":"无法删除7天前的文件"}');
-	$result = $stor->delete($row['hash']);
-	$sql = "DELETE FROM pre_file WHERE id=:id";
-	if($DB->exec($sql, [':id'=>$row['id']]))exit('{"code":0,"msg":"删除文件成功！"}');
-	else exit('{"code":-1,"msg":"删除文件失败['.$DB->error().']"}');
+	$share = pan_get_share_by_code($DB, $shareCode);
+	if(!$share)exit('{"code":-1,"msg":"分享不存在"}');
+	if(!pan_share_is_owner($share, $islogin, $islogin2, $uid, isset($_SESSION['shareids']) ? $_SESSION['shareids'] : []))exit('{"code":-1,"msg":"无权限"}');
+	if(intval($share['block'])===1)exit('{"code":-1,"msg":"文件已被冻结，无法删除"}');
+	if(!$islogin2 && strtotime($share['created_at'])<strtotime("-7 days"))exit('{"code":-1,"msg":"无法删除7天前创建的分享"}');
+	if(pan_delete_share($DB, $stor, $share))exit('{"code":0,"msg":"分享已删除"}');
+	else exit('{"code":-1,"msg":"分享删除失败['.$DB->error().']"}');
 break;
 
 case 'updateAccessPolicy':
-	$hash = isset($_POST['hash'])?trim($_POST['hash']):exit('{"code":-1,"msg":"no hash"}');
+	$shareCode = isset($_POST['share_code']) ? trim($_POST['share_code']) : exit('{"code":-1,"msg":"缺少分享码"}');
 	require_csrf_token();
-	if(!preg_match('/^[0-9a-z]{32}$/i', $hash))exit('{"code":-1,"msg":"hash error"}');
-	$row = $DB->getRow("SELECT * FROM `pre_file` WHERE `hash`=:hash", [':hash'=>$hash]);
-	if(!$row)exit('{"code":-1,"msg":"文件不存在"}');
-	if(($islogin2 && $row['uid']!=$uid) || (!$islogin2 && (!isset($_SESSION['fileids']) || !in_array($row['id'], $_SESSION['fileids']))))exit('{"code":-1,"msg":"无权限"}');
+	$share = pan_get_share_by_code($DB, $shareCode);
+	if(!$share)exit('{"code":-1,"msg":"分享不存在"}');
+	if(!pan_share_is_owner($share, $islogin, $islogin2, $uid, isset($_SESSION['shareids']) ? $_SESSION['shareids'] : []))exit('{"code":-1,"msg":"无权限"}');
 	$expire_days = pan_normalize_expire_days(isset($_POST['expire_days']) ? $_POST['expire_days'] : 0);
 	$expire_at = pan_expire_at_from_days($expire_days);
 	$max_downloads = pan_normalize_max_downloads(isset($_POST['max_downloads']) ? $_POST['max_downloads'] : 0);
-	$result = $DB->exec("UPDATE `pre_file` SET `expire_at`=:expire_at,`max_downloads`=:max_downloads WHERE `id`=:id", [':expire_at'=>$expire_at, ':max_downloads'=>$max_downloads, ':id'=>$row['id']]);
+	$result = $DB->exec("UPDATE `pre_share` SET `expire_at`=:expire_at,`max_accesses`=:max_accesses WHERE `id`=:id", [':expire_at'=>$expire_at, ':max_accesses'=>$max_downloads, ':id'=>intval($share['id'])]);
 	if($result!==false)exit('{"code":0,"msg":"分享策略已更新"}');
 	else exit('{"code":-1,"msg":"分享策略更新失败"}');
 break;

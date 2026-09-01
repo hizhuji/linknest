@@ -6,25 +6,29 @@ include("./includes/common.php");
 
 $conditions = [];
 $params = [];
+$shareSelector = "SELECT s.code FROM pre_share s WHERE s.file_id=f.id AND s.status=1 AND (s.expire_at IS NULL OR s.expire_at>NOW()) AND (s.max_accesses=0 OR s.access_count<s.max_accesses) ORDER BY s.id ASC LIMIT 1";
 if(isset($_GET['m']) && $_GET['m']=='mine'){
     $title = '我的文件 - ' . $conf['title'];
     $htext = '我上传的文件';
     if($islogin2){
-		$conditions[] = 'uid=:uid';
+		$conditions[] = 'EXISTS (SELECT 1 FROM pre_share mine_s WHERE mine_s.file_id=f.id AND mine_s.created_by_uid=:uid)';
+		$shareSelector = "SELECT s.code FROM pre_share s WHERE s.file_id=f.id AND s.created_by_uid=:share_uid ORDER BY s.status DESC,s.id DESC LIMIT 1";
 		$params[':uid'] = (int)$uid;
+		$params[':share_uid'] = (int)$uid;
     }else{
         if($conf['userlogin']==1){
             $htext .= '<span class="text-muted" style="font-size:16px">（根据浏览器缓存记录，<a href="login.php">登录</a>后可永久保留记录）</span>';
         }else{
             $htext .= '<span class="text-muted" style="font-size:16px">（根据浏览器缓存记录）</span>';
         }
-        if(isset($_SESSION['fileids']) && count($_SESSION['fileids'])>0){
-            $ids = array_reverse($_SESSION['fileids']);
+		if(isset($_SESSION['shareids']) && count($_SESSION['shareids'])>0){
+			$ids = array_reverse($_SESSION['shareids']);
             if(count($ids) > 60){
                 $ids = array_splice($ids, 0, 60);
             }
 			$ids = array_map('intval', $ids);
-            $conditions[] = "id IN (".implode(',', $ids).")";
+			$conditions[] = "EXISTS (SELECT 1 FROM pre_share mine_s WHERE mine_s.file_id=f.id AND mine_s.id IN (".implode(',', $ids)."))";
+			$shareSelector = "SELECT s.code FROM pre_share s WHERE s.file_id=f.id AND s.id IN (".implode(',', $ids).") ORDER BY s.status DESC,s.id DESC LIMIT 1";
         }else{
 			$conditions[] = '1=2';
         }
@@ -33,19 +37,18 @@ if(isset($_GET['m']) && $_GET['m']=='mine'){
 }else{
     $title = $conf['title'];
     $htext = '文件列表';
-	$conditions[] = 'hide=0';
-	$conditions[] = '(expire_at IS NULL OR expire_at > NOW())';
-	$conditions[] = '(max_downloads=0 OR count < max_downloads)';
+	$conditions[] = 'f.hide=0';
+	$conditions[] = 'EXISTS (SELECT 1 FROM pre_share public_s WHERE public_s.file_id=f.id AND public_s.status=1 AND (public_s.expire_at IS NULL OR public_s.expire_at>NOW()) AND (public_s.max_accesses=0 OR public_s.access_count<public_s.max_accesses))';
     $link = '';
 }
 $kw = isset($_GET['kw'])?trim(strip_tags($_GET['kw'])):null;
 if($conf['filesearch']==1 && $kw){
-	$conditions[] = 'name LIKE :kw';
+	$conditions[] = 'f.name LIKE :kw';
 	$params[':kw'] = '%'.$kw.'%';
     $link .= '&kw='.rawurlencode($kw);
 }
 $sql = implode(' AND ', $conditions);
-$numrows=$DB->getColumn("SELECT count(*) from pre_file WHERE {$sql}", $params);
+$numrows=$DB->getColumn("SELECT count(*) from pre_file f WHERE {$sql}", $params);
 
 include SYSTEM_ROOT.'header.php';
 ?>
@@ -95,12 +98,12 @@ $pages=max(1, ceil($numrows/$pagesize));
 $page=isset($_GET['page'])?intval($_GET['page']):1;
 $offset=$pagesize*($page - 1);
 
-$rs=$DB->query("SELECT * FROM pre_file WHERE {$sql} ORDER BY id DESC LIMIT $offset,$pagesize", $params);
+$rs=$DB->query("SELECT f.*,({$shareSelector}) AS share_code FROM pre_file f WHERE {$sql} ORDER BY f.id DESC LIMIT $offset,$pagesize", $params);
 $i=1;
 while($res = $rs->fetch())
 {
-	$fileurl = './down.php/'.$res['hash'].'.'.($res['type']?$res['type']:'file');
-	$viewurl = './file.php?hash='.$res['hash'];
+	$viewurl = './s.php?code='.rawurlencode($res['share_code']);
+	$fileurl = $viewurl;
 	echo '<tr><td class="file-index">'.str_pad($i++, 2, '0', STR_PAD_LEFT).'</td><td class="file-actions"><a href="'.$fileurl.'"><i class="fa fa-download" aria-hidden="true"></i>下载</a><a href="'.$viewurl.'"><i class="fa fa-external-link" aria-hidden="true"></i>查看</a></td><td class="file-name"><i class="fa '.type_to_icon($res['type']).' fa-fw" aria-hidden="true"></i><span>'.htmlspecialchars($res['name'], ENT_QUOTES, 'UTF-8').'</span></td><td>'.size_format($res['size']).'</td><td><span class="file-type">'.htmlspecialchars($res['type']?$res['type']:'未知', ENT_QUOTES, 'UTF-8').'</span></td><td>'.htmlspecialchars($res['addtime'], ENT_QUOTES, 'UTF-8').'</td><td>'.htmlspecialchars(preg_replace('/\d+$/','*',$res['ip']), ENT_QUOTES, 'UTF-8').'</td></tr>';
 }
 if($numrows == 0) echo '<tr><td colspan="7" class="empty-files"><i class="fa fa-folder-open-o" aria-hidden="true"></i><strong>这里还没有文件</strong><span>上传一个文件，开始建立你的共享空间。</span><a href="./upload.php" class="btn btn-primary">上传文件</a></td></tr>';
