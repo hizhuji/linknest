@@ -271,7 +271,17 @@ case 'updateAccessPolicy':
 	$expire_days = pan_normalize_expire_days(isset($_POST['expire_days']) ? $_POST['expire_days'] : 0);
 	$expire_at = pan_expire_at_from_days($expire_days);
 	$max_downloads = pan_normalize_max_downloads(isset($_POST['max_downloads']) ? $_POST['max_downloads'] : 0);
-	$result = $DB->exec("UPDATE `pre_share` SET `expire_at`=:expire_at,`max_accesses`=:max_accesses WHERE `id`=:id", [':expire_at'=>$expire_at, ':max_accesses'=>$max_downloads, ':id'=>intval($share['id'])]);
+	$refererMode = isset($_POST['referer_mode']) ? intval($_POST['referer_mode']) : intval($share['referer_mode']);
+	if(!in_array($refererMode, [0, 1, 2], true))exit('{"code":-1,"msg":"来源规则无效"}');
+	$refererRules = substr(trim(isset($_POST['referer_rules']) ? (string)$_POST['referer_rules'] : (string)$share['referer_rules']), 0, 4000);
+	$allowEmptyReferer = !empty($_POST['allow_empty_referer']) ? 1 : 0;
+	$uaBlocklist = substr(trim(isset($_POST['ua_blocklist']) ? (string)$_POST['ua_blocklist'] : (string)$share['ua_blocklist']), 0, 4000);
+	$requestLimit = max(0, min(10000, intval(isset($_POST['request_limit']) ? $_POST['request_limit'] : $share['request_limit'])));
+	$dailyTraffic = pan_gigabytes_to_bytes(isset($_POST['daily_traffic_gb']) ? $_POST['daily_traffic_gb'] : 0);
+	$monthlyTraffic = pan_gigabytes_to_bytes(isset($_POST['monthly_traffic_gb']) ? $_POST['monthly_traffic_gb'] : 0);
+	$webhookUrl = substr(trim(isset($_POST['webhook_url']) ? (string)$_POST['webhook_url'] : ''), 0, 1000);
+	if($webhookUrl!=='' && pan_safe_webhook_target($webhookUrl)===false)exit('{"code":-1,"msg":"告警地址必须是可解析的公网 HTTPS 地址"}');
+	$result = $DB->exec("UPDATE `pre_share` SET `expire_at`=:expire_at,`max_accesses`=:max_accesses,referer_mode=:referer_mode,referer_rules=:referer_rules,allow_empty_referer=:allow_empty_referer,ua_blocklist=:ua_blocklist,request_limit=:request_limit,daily_traffic_limit=:daily_traffic_limit,monthly_traffic_limit=:monthly_traffic_limit,webhook_url=:webhook_url WHERE `id`=:id", [':expire_at'=>$expire_at, ':max_accesses'=>$max_downloads, ':referer_mode'=>$refererMode, ':referer_rules'=>$refererRules, ':allow_empty_referer'=>$allowEmptyReferer, ':ua_blocklist'=>$uaBlocklist, ':request_limit'=>$requestLimit, ':daily_traffic_limit'=>$dailyTraffic, ':monthly_traffic_limit'=>$monthlyTraffic, ':webhook_url'=>($webhookUrl===''?null:$webhookUrl), ':id'=>intval($share['id'])]);
 	if($result!==false)exit('{"code":0,"msg":"分享策略已更新"}');
 	else exit('{"code":-1,"msg":"分享策略更新失败"}');
 break;

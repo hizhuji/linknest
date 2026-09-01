@@ -43,6 +43,7 @@ case 'set':
 		}
 	}
 	if(isset($_POST['webdav_root'])) $_POST['webdav_root'] = trim(str_replace('\\', '/', $_POST['webdav_root']), '/');
+	if(isset($_POST['access_log_retention_days'])) $_POST['access_log_retention_days'] = max(1, min(3650, intval($_POST['access_log_retention_days'])));
 	if(isset($_POST['green_label_porn'])){
 		$_POST['green_label_porn'] = implode(',',$_POST['green_label_porn']);
 	}

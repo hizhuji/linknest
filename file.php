@@ -39,11 +39,13 @@ $expire_text = empty($share['expire_at']) ? '永久有效' : $share['expire_at']
 $max_downloads_text = intval($share['max_accesses']) > 0 ? intval($share['max_accesses']).' 次' : '不限次数';
 $ownedShares = [];
 $recentLogs = [];
+$recentAlerts = [];
 if($is_mine){
   foreach(pan_get_file_shares($DB, $share['file_id']) as $candidateShare){
     if(pan_share_is_owner($candidateShare, $islogin, $islogin2, $uid, isset($_SESSION['shareids']) ? $_SESSION['shareids'] : [])) $ownedShares[] = $candidateShare;
   }
   $recentLogs = pan_get_share_logs($DB, $share['id'], 10);
+  $recentAlerts = $DB->getAll("SELECT alert_type,details,notified,created_at FROM pre_alert_log WHERE share_id=:share_id ORDER BY id DESC LIMIT 10", [':share_id'=>intval($share['id'])]);
 }
 
 if($view_type == 'image'){
@@ -273,6 +275,18 @@ if($access_error){
                             <button onclick="update_access_policy()" class="btn btn-raised btn-primary"><i class="fa fa-clock-o" aria-hidden="true"></i> 更新分享策略</button>
                             <button onclick="delete_confirm()" class="btn btn-raised btn-danger"><i class="fa fa-close" aria-hidden="true"></i> 删除当前分享</button>
                             <hr>
+                            <h4 style="text-align:left">访问保护</h4>
+                            <div class="row" style="text-align:left">
+                              <div class="col-sm-4"><label for="referer_mode">来源域名规则</label><select class="form-control" id="referer_mode"><option value="0" <?php echo intval($share['referer_mode'])===0?'selected':''?>>不限制</option><option value="1" <?php echo intval($share['referer_mode'])===1?'selected':''?>>仅允许列表</option><option value="2" <?php echo intval($share['referer_mode'])===2?'selected':''?>>拒绝列表</option></select></div>
+                              <div class="col-sm-8"><label for="referer_rules">域名列表</label><textarea class="form-control" id="referer_rules" rows="2" placeholder="example.com 或 *.example.com，每行一个"><?php echo htmlspecialchars($share['referer_rules'], ENT_QUOTES, 'UTF-8')?></textarea></div>
+                              <div class="col-sm-4" style="padding-top:12px"><label><input id="allow_empty_referer" type="checkbox" <?php echo intval($share['allow_empty_referer'])===1?'checked':''?>> 允许无来源请求</label></div>
+                              <div class="col-sm-8"><label for="ua_blocklist">客户端拦截词</label><textarea class="form-control" id="ua_blocklist" rows="2" placeholder="curl、bot 等，每行一个"><?php echo htmlspecialchars($share['ua_blocklist'], ENT_QUOTES, 'UTF-8')?></textarea></div>
+                              <div class="col-sm-4"><label for="request_limit">每 IP 每分钟请求数</label><input class="form-control" id="request_limit" type="number" min="0" max="10000" value="<?php echo intval($share['request_limit'])?>"><p class="help-block">0 表示不限</p></div>
+                              <div class="col-sm-4"><label for="daily_traffic_gb">每日流量上限（GB）</label><input class="form-control" id="daily_traffic_gb" type="number" min="0" step="0.01" value="<?php echo round(intval($share['daily_traffic_limit'])/1073741824, 2)?>"></div>
+                              <div class="col-sm-4"><label for="monthly_traffic_gb">每月流量上限（GB）</label><input class="form-control" id="monthly_traffic_gb" type="number" min="0" step="0.01" value="<?php echo round(intval($share['monthly_traffic_limit'])/1073741824, 2)?>"></div>
+                              <div class="col-sm-12"><label for="webhook_url">告警地址</label><input class="form-control" id="webhook_url" type="url" value="<?php echo htmlspecialchars($share['webhook_url'], ENT_QUOTES, 'UTF-8')?>" placeholder="https://..."><p class="help-block">命中来源限制、频率或流量上限时发送 JSON 通知；仅支持公网 HTTPS。</p></div>
+                            </div>
+                            <hr>
                             <h4 style="text-align:left">创建新分享</h4>
                             <div class="row" style="text-align:left">
                               <div class="col-sm-4"><label for="new_share_code">自定义短码</label><input class="form-control" id="new_share_code" maxlength="64" placeholder="留空自动生成"></div>
@@ -292,6 +306,10 @@ if($access_error){
                             <div class="table-responsive"><table class="table table-bordered table-condensed"><thead><tr><th>时间</th><th>行为</th><th>IP</th><th>流量</th></tr></thead><tbody>
                             <?php foreach($recentLogs as $log){ ?><tr><td><?php echo htmlspecialchars($log['created_at'], ENT_QUOTES, 'UTF-8')?></td><td><?php echo $log['event']==='download'?'下载':'预览'?></td><td><?php echo htmlspecialchars($log['ip_masked'], ENT_QUOTES, 'UTF-8')?></td><td><?php echo size_format($log['bytes'])?></td></tr><?php } ?>
                             <?php if(!$recentLogs){ ?><tr><td colspan="4">暂无访问记录</td></tr><?php } ?></tbody></table></div>
+                            <h4 style="text-align:left">最近告警</h4>
+                            <div class="table-responsive"><table class="table table-bordered table-condensed"><thead><tr><th>时间</th><th>类型</th><th>详情</th><th>通知</th></tr></thead><tbody>
+                            <?php foreach($recentAlerts as $alert){ ?><tr><td><?php echo htmlspecialchars($alert['created_at'], ENT_QUOTES, 'UTF-8')?></td><td><?php echo htmlspecialchars($alert['alert_type'], ENT_QUOTES, 'UTF-8')?></td><td><?php echo htmlspecialchars($alert['details'], ENT_QUOTES, 'UTF-8')?></td><td><?php echo intval($alert['notified'])===1?'已发送':'未发送'?></td></tr><?php } ?>
+                            <?php if(!$recentAlerts){ ?><tr><td colspan="4">暂无告警</td></tr><?php } ?></tbody></table></div>
                           </div>
                       </div>
                   </div>
@@ -362,7 +380,15 @@ function update_access_policy(){
       share_code: share_code,
       csrf_token: csrf_token,
       expire_days: $("#access_expire_days").val(),
-      max_downloads: $("#access_max_downloads").val()
+      max_downloads: $("#access_max_downloads").val(),
+      referer_mode: $("#referer_mode").val(),
+      referer_rules: $("#referer_rules").val(),
+      allow_empty_referer: $("#allow_empty_referer").prop('checked') ? 1 : 0,
+      ua_blocklist: $("#ua_blocklist").val(),
+      request_limit: $("#request_limit").val(),
+      daily_traffic_gb: $("#daily_traffic_gb").val(),
+      monthly_traffic_gb: $("#monthly_traffic_gb").val(),
+      webhook_url: $("#webhook_url").val()
     },
     dataType: 'json',
     success: function(data){

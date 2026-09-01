@@ -4,9 +4,9 @@ if(defined('IN_CRONLITE'))return;
 define('IN_CRONLITE', true);
 define('SYSTEM_ROOT', dirname(__FILE__).'/');
 define('ROOT', dirname(SYSTEM_ROOT).'/');
-define('VERSION', '1660');
-define('VERSION_NAME', '6.6.0');
-define('DB_VERSION', '1007');
+define('VERSION', '1670');
+define('VERSION_NAME', '6.7.0');
+define('DB_VERSION', '1008');
 date_default_timezone_set('Asia/Shanghai');
 $date = date("Y-m-d H:i:s");
 

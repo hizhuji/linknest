@@ -59,6 +59,18 @@ expect_true(pan_share_access_error(['status'=>1, 'block'=>0, 'expire_at'=>'2026-
 expect_true(pan_share_access_error(['status'=>1, 'block'=>0, 'expire_at'=>null, 'max_accesses'=>1, 'access_count'=>1], $now) === 'limit', 'Shares at their access limit should be rejected.');
 expect_true(pan_mask_ip('203.0.113.42') === '203.0.113.*', 'IPv4 access logs should mask the final octet.');
 expect_true(substr(pan_mask_ip('2001:db8:abcd:1234::1'), -3) === '/48', 'IPv6 access logs should retain only a /48 prefix.');
+expect_true(pan_host_matches_rule('cdn.example.com', '*.example.com'), 'Wildcard referer rules should match subdomains.');
+expect_true(!pan_host_matches_rule('example.com', '*.example.com'), 'Wildcard referer rules should not silently include the root domain.');
+$_SERVER['HTTP_HOST'] = 'pan.example.com';
+expect_true(pan_share_referer_allowed(['referer_mode'=>1, 'referer_rules'=>'allowed.example', 'allow_empty_referer'=>0], 'https://pan.example.com/file.php'), 'Same-site previews should remain available with referer protection enabled.');
+expect_true(!pan_share_referer_allowed(['referer_mode'=>1, 'referer_rules'=>'allowed.example', 'allow_empty_referer'=>0], 'https://blocked.example/page'), 'Allowlist mode should reject an unlisted referer.');
+expect_true(!pan_share_user_agent_allowed(['ua_blocklist'=>"curl\nbadbot"], 'curl/8.0'), 'Blocked user-agent keywords should be rejected.');
+expect_true(pan_gigabytes_to_bytes(1) === 1073741824, 'Traffic limits should convert GiB to bytes.');
+unset($_SERVER['HTTP_RANGE']);
+expect_true(pan_requested_bytes(1000) === 1000, 'Full requests should count the full file size.');
+$_SERVER['HTTP_RANGE'] = 'bytes=100-199';
+expect_true(pan_requested_bytes(1000) === 100, 'Range requests should count only requested bytes.');
+unset($_SERVER['HTTP_RANGE']);
 expect_true(pan_normalize_site_url('pan.example.com') === 'https://pan.example.com/', 'Bare domains should normalize to HTTPS.');
 expect_true(pan_normalize_site_url('https://pan.example.com/files') === 'https://pan.example.com/files/', 'Site paths should be preserved with a trailing slash.');
 expect_true(pan_normalize_site_url('https://user:pass@pan.example.com/') === false, 'Credential-bearing site URLs should be rejected.');

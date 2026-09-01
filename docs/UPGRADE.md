@@ -3,7 +3,7 @@
 ## Before upgrading
 
 1. Back up the database, `config.php`, and the configured local upload directory.
-2. Confirm that the server runs PHP 7.4 through 8.3 with `pdo_mysql` and `curl` enabled.
+2. Confirm that the server runs PHP 7.4 through 8.4 with `pdo_mysql` and `curl` enabled.
 3. Replace application files without replacing `config.php`, `file/`, or `install/install.lock`.
 
 ## Online updates
@@ -23,6 +23,20 @@ Open `/install/update.php` once after deploying this release. The migration adds
 ## Upgrade to database version 1004
 
 This migration applies the LinkNest name only when the site still uses the untouched legacy default title or description. Administrator-customized site names and descriptions are preserved.
+
+## Upgrade to database version 1005
+
+This migration switches client IP detection to the direct connection address by default and adds an explicit trusted-proxy list. Configure the proxy IP or CIDR range only when the site is actually behind a trusted reverse proxy or CDN.
+
+## Upgrade to database versions 1006 and 1007
+
+Version 1006 creates the independent share table and migrates each existing file link into a default share. Old `file.php?hash=...` links remain compatible. Version 1007 adds privacy-preserving access logs and daily traffic summaries. Existing files and stored objects are not moved or duplicated.
+
+## Upgrade to database version 1008
+
+This migration adds per-share referer rules, user-agent blocking, request-rate limits, daily/monthly traffic caps, HTTPS webhook alerts, and the supporting rate/alert tables. All new controls default to disabled, so existing public links keep their previous behavior until an owner enables protection.
+
+For true byte-per-second throttling on large local files, use the web server's native delivery controls such as Nginx `X-Accel-Redirect`; PHP request limits and traffic caps are intended for abuse prevention, not precise transfer shaping.
 
 ## API callers
 

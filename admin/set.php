@@ -44,6 +44,10 @@ if($mod=='site'){
 	  <div class="col-sm-10"><textarea class="form-control" name="blackip" rows="2" placeholder="多个IP用|隔开"><?php echo $conf['blackip']?></textarea></div>
 	</div><br/>
 	<div class="form-group">
+	  <label class="col-sm-2 control-label">访问日志保留</label>
+	  <div class="col-sm-10"><input type="number" min="1" max="3650" name="access_log_retention_days" value="<?php echo max(1, intval(isset($conf['access_log_retention_days']) ? $conf['access_log_retention_days'] : 30)); ?>" class="form-control"/><p class="help-block">单位为天，系统会低频自动清理过期明细；每日汇总长期保留。</p></div>
+	</div><br/>
+	<div class="form-group">
 	  <label class="col-sm-2 control-label">首页公告</label>
 	  <div class="col-sm-10"><textarea class="form-control" name="gonggao" rows="3" placeholder="不填写则不显示首页公告"><?php echo htmlspecialchars($conf['gonggao'])?></textarea></div>
 	</div><br/>

@@ -5,7 +5,7 @@ create table `pre_config` (
   PRIMARY KEY  (`k`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `pre_config` VALUES ('version', '1007');
+INSERT INTO `pre_config` VALUES ('version', '1008');
 INSERT INTO `pre_config` VALUES ('admin_user', 'admin');
 INSERT INTO `pre_config` VALUES ('admin_pwd', '');
 INSERT INTO `pre_config` VALUES ('blackip', '');
@@ -107,6 +107,14 @@ CREATE TABLE `pre_share` (
   `access_count` int(11) unsigned NOT NULL DEFAULT '0',
   `status` tinyint(1) NOT NULL DEFAULT '1',
   `one_time` tinyint(1) NOT NULL DEFAULT '0',
+  `referer_mode` tinyint(1) NOT NULL DEFAULT '0',
+  `referer_rules` text DEFAULT NULL,
+  `allow_empty_referer` tinyint(1) NOT NULL DEFAULT '1',
+  `ua_blocklist` text DEFAULT NULL,
+  `request_limit` int(11) unsigned NOT NULL DEFAULT '0',
+  `daily_traffic_limit` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `monthly_traffic_limit` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `webhook_url` varchar(1000) DEFAULT NULL,
   `created_by_uid` int(11) unsigned NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL,
   `last_access_at` datetime DEFAULT NULL,
@@ -142,4 +150,24 @@ CREATE TABLE `pre_access_daily` (
   `bytes` bigint(20) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`share_id`,`access_date`),
   KEY `access_date` (`access_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `pre_share_rate` (
+  `share_id` bigint(20) unsigned NOT NULL,
+  `ip_hash` char(64) CHARACTER SET ascii NOT NULL,
+  `window_start` int(10) unsigned NOT NULL,
+  `requests` int(11) unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`share_id`,`ip_hash`),
+  KEY `window_start` (`window_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `pre_alert_log` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `share_id` bigint(20) unsigned NOT NULL,
+  `alert_type` varchar(40) CHARACTER SET ascii NOT NULL,
+  `details` varchar(1000) DEFAULT NULL,
+  `notified` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `share_alert_time` (`share_id`,`alert_type`,`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

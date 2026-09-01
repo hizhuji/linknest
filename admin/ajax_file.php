@@ -84,6 +84,14 @@ case 'delFile':
 	if(!$row)
 		exit('{"code":-1,"msg":"当前文件不存在！"}');
 	$result = $stor->delete($row['hash']);
+	$shareIds = $DB->getAll("SELECT id FROM pre_share WHERE file_id='$id'");
+	foreach($shareIds as $shareId){
+		$sid = intval($shareId['id']);
+		$DB->exec("DELETE FROM pre_access_log WHERE share_id='$sid'");
+		$DB->exec("DELETE FROM pre_access_daily WHERE share_id='$sid'");
+		$DB->exec("DELETE FROM pre_share_rate WHERE share_id='$sid'");
+		$DB->exec("DELETE FROM pre_alert_log WHERE share_id='$sid'");
+	}
 	$DB->exec("DELETE FROM pre_share WHERE file_id='$id'");
 	$sql = "DELETE FROM pre_file WHERE id='$id'";
 	if($DB->exec($sql))exit('{"code":0,"msg":"删除文件成功！"}');
@@ -102,6 +110,14 @@ case 'operation':
 		if($status == 0){
 			$hash=$DB->getColumn("select hash from pre_file where id='$id' limit 1");
 			$stor->delete($hash);
+			$shareIds = $DB->getAll("SELECT id FROM pre_share WHERE file_id='$id'");
+			foreach($shareIds as $shareId){
+				$sid = intval($shareId['id']);
+				$DB->exec("DELETE FROM pre_access_log WHERE share_id='$sid'");
+				$DB->exec("DELETE FROM pre_access_daily WHERE share_id='$sid'");
+				$DB->exec("DELETE FROM pre_share_rate WHERE share_id='$sid'");
+				$DB->exec("DELETE FROM pre_alert_log WHERE share_id='$sid'");
+			}
 			$DB->exec("DELETE FROM pre_share WHERE file_id='$id'");
 			$DB->exec("DELETE FROM pre_file WHERE id='$id'");
 		}elseif($status == 1){
