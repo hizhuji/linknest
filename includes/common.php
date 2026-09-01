@@ -4,17 +4,23 @@ if(defined('IN_CRONLITE'))return;
 define('IN_CRONLITE', true);
 define('SYSTEM_ROOT', dirname(__FILE__).'/');
 define('ROOT', dirname(SYSTEM_ROOT).'/');
-define('VERSION', '1532');
-define('DB_VERSION', '1001');
+define('VERSION', '1600');
+define('DB_VERSION', '1002');
 date_default_timezone_set('Asia/Shanghai');
 $date = date("Y-m-d H:i:s");
 
-if(!$nosession)session_start();
+include_once(SYSTEM_ROOT.'security.php');
+if(!$nosession)pan_start_session();
 
 include_once(SYSTEM_ROOT.'txprotect.php');
 include_once(SYSTEM_ROOT."autoloader.php");
 Autoloader::register();
 
+if (!file_exists(ROOT.'config.php')) {
+	header('Content-type:text/html;charset=utf-8');
+	echo '你还没安装！<a href="./install/">点此安装</a>';
+	exit();
+}
 require ROOT.'config.php';
 
 if(!$dbconfig['user']||!$dbconfig['pwd']||!$dbconfig['dbname'])//检测安装1
@@ -37,7 +43,6 @@ include_once(SYSTEM_ROOT."functions.php");
 
 $conf=getAllSetting();
 define('SYS_KEY', $conf['syskey']);
-$password_hash='!@#%!s!0';
 
 if (!$conf['version'] || $conf['version'] < DB_VERSION) {
     if (!$install) {
@@ -54,28 +59,21 @@ $siteurl = (is_https() ? 'https://' : 'http://').$_SERVER['HTTP_HOST'].$sitepath
 $clientip=real_ip($conf['ip_type']?$conf['ip_type']:0);
 if(isset($_COOKIE["admin_token"]))
 {
-	$token=authcode(daddslashes($_COOKIE['admin_token']), 'DECODE', SYS_KEY);
-	if($token){
-		list($user, $sid, $expiretime) = explode("\t", $token);
-		$session=md5($conf['admin_user'].$conf['admin_pwd'].$password_hash);
-		if($session==$sid && $expiretime>time()) {
-			$islogin=1;
-		}
+	$token = pan_read_auth_token($_COOKIE['admin_token'], SYS_KEY);
+	if($token && isset($token['type'], $token['user'], $token['sid']) && $token['type'] === 'admin'){
+		$session = hash_hmac('sha256', $conf['admin_user']."\0".$conf['admin_pwd'], SYS_KEY);
+		if(hash_equals($conf['admin_user'], $token['user']) && hash_equals($session, $token['sid'])) $islogin=1;
 	}
 }
 if(isset($_COOKIE["user_token"]))
 {
-	$token=authcode(daddslashes($_COOKIE['user_token']), 'DECODE', SYS_KEY);
-	if($token){
-		list($uid, $sid, $expiretime) = explode("\t", $token);
-		if($userrow = $DB->getRow("SELECT * FROM pre_user WHERE uid='".intval($uid)."' LIMIT 1")){
-			$session=md5($userrow['type'].$userrow['openid'].$password_hash);
-			if($session===$sid && $expiretime>time()) {
-				if($userrow['enable']==1){
-					$islogin2=1;
-				}else{
-					$_SESSION['user_block'] = true;
-				}
+	$token = pan_read_auth_token($_COOKIE['user_token'], SYS_KEY);
+	if($token && isset($token['type'], $token['uid'], $token['sid']) && $token['type'] === 'user'){
+		if($userrow = $DB->getRow("SELECT * FROM pre_user WHERE uid=:uid LIMIT 1", [':uid'=>intval($token['uid'])])){
+			$session = hash_hmac('sha256', $userrow['type']."\0".$userrow['openid'], SYS_KEY);
+			if(hash_equals($session, $token['sid'])) {
+				if($userrow['enable']==1) $islogin2=1;
+				else $_SESSION['user_block'] = true;
 			}
 		}
 	}

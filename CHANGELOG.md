@@ -1,5 +1,14 @@
 # CHANGELOG
 
+### V6.0.0
+
+1. Community-maintained baseline created from upstream `a4e5a43`.
+2. Added signed authentication cookies, secure session cookies, login rate limiting, and CSRF protection for admin mutations.
+3. Migrated administrator passwords to `password_hash()` on successful login and removed the fixed installer password.
+4. Fixed API origin validation and added optional API-token enforcement.
+5. Enabled TLS certificate verification for application-owned HTTP clients.
+6. Added upgrade documentation, storage acceptance checklist, CI, and dependency monitoring.
+
 ### V5.5
 
 1. 后台支持批量封禁解封

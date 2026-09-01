@@ -1,14 +1,17 @@
 <?php
-if (version_compare(PHP_VERSION, '7.1.0', '<')) {
-    die('require PHP >= 7.1 !');
+if (version_compare(PHP_VERSION, '7.4.0', '<')) {
+    die('require PHP >= 7.4 !');
 }
 include("./includes/common.php");
 
+$conditions = [];
+$params = [];
 if(isset($_GET['m']) && $_GET['m']=='mine'){
     $title = '我的文件 - ' . $conf['title'];
     $htext = '我上传的文件';
     if($islogin2){
-        $sql = " uid='{$uid}'";
+		$conditions[] = 'uid=:uid';
+		$params[':uid'] = (int)$uid;
     }else{
         if($conf['userlogin']==1){
             $htext .= '<span class="text-muted" style="font-size:16px">（根据浏览器缓存记录，<a href="login.php">登录</a>后可永久保留记录）</span>';
@@ -20,24 +23,26 @@ if(isset($_GET['m']) && $_GET['m']=='mine'){
             if(count($ids) > 60){
                 $ids = array_splice($ids, 0, 60);
             }
-            $ids = implode(',',$ids);
-            $sql = " id IN ($ids)";
+			$ids = array_map('intval', $ids);
+            $conditions[] = "id IN (".implode(',', $ids).")";
         }else{
-            $sql = " 1=2";
+			$conditions[] = '1=2';
         }
     }
     $link = '&m=mine';
 }else{
     $title = $conf['title'];
     $htext = '文件列表';
-    $sql = " hide=0";
+	$conditions[] = 'hide=0';
     $link = '';
 }
-$kw = isset($_GET['kw'])?daddslashes(trim(strip_tags($_GET['kw']))):null;
+$kw = isset($_GET['kw'])?trim(strip_tags($_GET['kw'])):null;
 if($conf['filesearch']==1 && $kw){
-    $sql.=" AND name LIKE '%{$kw}%'";
-    $link .= '&kw='.$kw;
+	$conditions[] = 'name LIKE :kw';
+	$params[':kw'] = '%'.$kw.'%';
+    $link .= '&kw='.rawurlencode($kw);
 }
+$sql = implode(' AND ', $conditions);
 
 include SYSTEM_ROOT.'header.php';
 ?>
@@ -47,7 +52,7 @@ include SYSTEM_ROOT.'header.php';
         <?php if($conf['filesearch']==1){?><span class="searchbox">
             <form class="form-inline" action="./" method="GET">
                 <?php if(isset($_GET['m'])){?><input name="m" type="hidden" value="<?php echo htmlspecialchars($_GET['m'])?>"><?php }?>
-				<input name="kw" class="form-control" type="search" placeholder="请输入搜索关键字" value="<?php echo $kw?>" required="">
+				<input name="kw" class="form-control" type="search" placeholder="请输入搜索关键字" value="<?php echo htmlspecialchars($kw, ENT_QUOTES, 'UTF-8')?>" required="">
 				<button class="btn btn-default btn-raised btn-sm" type="submit"><i class="fa fa-search" aria-hidden="true"></i> 搜索</button>
 			</form>
         </span><?php }?></h2>
@@ -66,19 +71,19 @@ include SYSTEM_ROOT.'header.php';
             </thead>
             <tbody>
 <?php
-$numrows=$DB->getColumn("SELECT count(*) from pre_file WHERE{$sql}");
+$numrows=$DB->getColumn("SELECT count(*) from pre_file WHERE {$sql}", $params);
 $pagesize=15;
 $pages=ceil($numrows/$pagesize);
 $page=isset($_GET['page'])?intval($_GET['page']):1;
 $offset=$pagesize*($page - 1);
 
-$rs=$DB->query("SELECT * FROM pre_file WHERE{$sql} ORDER BY id DESC LIMIT $offset,$pagesize");
+$rs=$DB->query("SELECT * FROM pre_file WHERE {$sql} ORDER BY id DESC LIMIT $offset,$pagesize", $params);
 $i=1;
 while($res = $rs->fetch())
 {
 	$fileurl = './down.php/'.$res['hash'].'.'.($res['type']?$res['type']:'file');
 	$viewurl = './file.php?hash='.$res['hash'];
-echo '<tr><td><b>'.$i++.'</b></td><td><a href="'.$fileurl.'">下载</a>｜<a href="'.$viewurl.'">查看</a></td><td><i class="fa '.type_to_icon($res['type']).' fa-fw"></i>'.$res['name'].'</td><td>'.size_format($res['size']).'</td><td><font color="blue">'.($res['type']?$res['type']:'未知').'</font></td><td>'.$res['addtime'].'</td><td>'.preg_replace('/\d+$/','*',$res['ip']).'</b></td></tr>';
+echo '<tr><td><b>'.$i++.'</b></td><td><a href="'.$fileurl.'">下载</a>｜<a href="'.$viewurl.'">查看</a></td><td><i class="fa '.type_to_icon($res['type']).' fa-fw"></i>'.htmlspecialchars($res['name'], ENT_QUOTES, 'UTF-8').'</td><td>'.size_format($res['size']).'</td><td><font color="blue">'.htmlspecialchars($res['type']?$res['type']:'未知', ENT_QUOTES, 'UTF-8').'</font></td><td>'.htmlspecialchars($res['addtime'], ENT_QUOTES, 'UTF-8').'</td><td>'.htmlspecialchars(preg_replace('/\d+$/','*',$res['ip']), ENT_QUOTES, 'UTF-8').'</b></td></tr>';
 }
 if($numrows == 0) echo '<tr><td colspan="7" align="center">还没上传过任何文件</td></tr>';
 ?>
@@ -131,7 +136,7 @@ echo '<li class="disabled"><a>尾页</a></li>';
 <script>
 $(function() {
     if(!$.cookie('gonggao')){
-        $.snackbar({content: "<?php echo $conf['gonggao']?>", timeout: 10000});
+		$.snackbar({content: <?php echo json_encode($conf['gonggao']); ?>, timeout: 10000});
         var cookietime = new Date(); 
         cookietime.setTime(cookietime.getTime() + (60*60*1000));
         $.cookie('gonggao', false, { expires: cookietime });

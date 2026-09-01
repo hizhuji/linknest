@@ -5,17 +5,28 @@ include("./includes/common.php");
 
 function showresult($arr, $format='json'){
 	$format = isset($_POST['format'])?$_POST['format']:'json';
+	if(!in_array($format, ['json', 'jsonp', 'form'], true))$format = 'json';
 	if($format == 'json'){
 		@header('Content-Type: application/json; charset=UTF-8');
 		exit(json_encode($arr));
 	}elseif($format == 'jsonp'){
 		$callback = isset($_POST['callback'])?$_POST['callback']:'callback';
+		if(!valid_jsonp_callback($callback)){
+			@header('Content-Type: application/json; charset=UTF-8');
+			exit(json_encode(['code'=>-1, 'msg'=>'无效的 JSONP 回调名称']));
+		}
 		@header('Content-Type: application/javascript; charset=UTF-8');
 		exit($callback.'('.json_encode($arr).')');
 	}else{
 		@header('Content-Type: text/html; charset=UTF-8');
 		if($arr['code']==0){
-			$backurl = isset($_POST['backurl'])?$_POST['backurl']:$_SERVER['HTTP_REFERER'];
+			$backurl = isset($_POST['backurl'])?$_POST['backurl']:(isset($_SERVER['HTTP_REFERER'])?$_SERVER['HTTP_REFERER']:'');
+			if(!valid_redirect_url($backurl))$backurl = '';
+			if(!$backurl)sysmsg('无效的跳转地址');
+			$downurl = htmlspecialchars($arr['downurl'], ENT_QUOTES, 'UTF-8');
+			$type = htmlspecialchars($arr['type'], ENT_QUOTES, 'UTF-8');
+			$name = htmlspecialchars($arr['name'], ENT_QUOTES, 'UTF-8');
+			$backurl = htmlspecialchars($backurl, ENT_QUOTES, 'UTF-8');
 echo '<html>
 <head>
 <meta http-equiv="content-type" content="text/html;charset=utf-8"/>
@@ -24,9 +35,9 @@ echo '<html>
 </head>
 <body>
 <form action="'.$backurl.'" method="post">
-<input name="file" type="hidden" value="'.$arr['downurl'].'" />
-<input name="type" type="hidden" value="'.$arr['type'].'" />
-<input name="name" type="hidden" value="'.$arr['name'].'" />
+<input name="file" type="hidden" value="'.$downurl.'" />
+<input name="type" type="hidden" value="'.$type.'" />
+<input name="name" type="hidden" value="'.$name.'" />
 <input name="submit" type="submit" value="下一步" />
 </form>
 </body></html>';
@@ -39,21 +50,30 @@ exit;
 
 if(!$conf['api_open'])showresult(['code'=>-4, 'msg'=>'当前站点未开启上传API']);
 
+if(isset($conf['api_require_token']) && $conf['api_require_token'] == 1){
+	$api_token = isset($_SERVER['HTTP_X_API_KEY']) ? $_SERVER['HTTP_X_API_KEY'] : (isset($_POST['api_token']) ? $_POST['api_token'] : '');
+	if(empty($conf['api_token']) || !hash_equals($conf['api_token'], $api_token))showresult(['code'=>-4, 'msg'=>'API 密钥不正确']);
+}
+
 if(!empty($conf['api_referer'])){
-	$referers = explode('|',$conf['api_referer']);
-	$url_arr = parse_url($_SERVER['HTTP_REFERER']);
-	if(!in_array($url_arr['host'], $url_arr))showresult(['code'=>-4, 'msg'=>'来源地址不正确']);
+	$referers = array_map('strtolower', array_filter(array_map('trim', explode('|',$conf['api_referer']))));
+	$url_arr = isset($_SERVER['HTTP_REFERER']) ? parse_url($_SERVER['HTTP_REFERER']) : false;
+	$host = is_array($url_arr) && isset($url_arr['host']) ? strtolower($url_arr['host']) : '';
+	if(!$host || !in_array($host, $referers, true))showresult(['code'=>-4, 'msg'=>'来源地址不正确']);
 }
 
 
 if(!isset($_FILES['file']))showresult(['code'=>-1, 'msg'=>'请选择文件']);
+if($_SERVER['REQUEST_METHOD'] !== 'POST')showresult(['code'=>-1, 'msg'=>'请求方式错误']);
+if($_FILES['file']['error'] !== UPLOAD_ERR_OK || !is_uploaded_file($_FILES['file']['tmp_name']))showresult(['code'=>-1, 'msg'=>'文件上传失败']);
 $name=trim(htmlspecialchars($_FILES['file']['name']));
 $size=intval($_FILES['file']['size']);
-$hide = $_POST['show']==1?0:1;
-$ispwd = intval($_POST['ispwd']);
-$pwd = $ispwd==1?trim(htmlspecialchars($_POST['pwd'])):null;
+$hide = isset($_POST['show']) && $_POST['show']==1?0:1;
+$ispwd = isset($_POST['ispwd']) ? intval($_POST['ispwd']) : 0;
+$pwd = $ispwd==1 && isset($_POST['pwd'])?trim(htmlspecialchars($_POST['pwd'])):null;
 $name = str_replace(['/','\\',':','*','"','<','>','|','?'],'',$name);
 if(empty($name))showresult(['code'=>-1, 'msg'=>'文件名不能为空']);
+if(!empty($conf['upload_size']) && $size > intval($conf['upload_size']) * 1024 * 1024)showresult(['code'=>-1, 'msg'=>'上传文件大小超过限制']);
 if($ispwd==1 && !empty($pwd)){
 	if (!preg_match('/^[a-zA-Z0-9]+$/', $pwd)) {
 		showresult(['code'=>-1, 'msg'=>'文件密码只能为字母和数字']);
@@ -74,10 +94,14 @@ if($conf['name_block']){
 		}
 	}
 }
+if(!empty($conf['upload_limit'])){
+	$thisday = date("Y-m-d 00:00:00");
+	$ipcount = $DB->getColumn('SELECT count(*) FROM pre_file WHERE ip=:ip AND addtime>=:addtime', [':ip'=>$clientip, ':addtime'=>$thisday]);
+	if($ipcount >= intval($conf['upload_limit']))showresult(['code'=>-1, 'msg'=>'你今天上传文件的数量已超过限制']);
+}
 $hash = md5_file($_FILES['file']['tmp_name']);
 $row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
 if($row){
-	unset($_SESSION['csrf_token']);
 	$downurl = $siteurl.'down.php/'.$row['hash'].'.'.$row['type'];
 	if(!empty($row['pwd']))$downurl .= '&'.$row['pwd'];
 	$result = ['code'=>0, 'msg'=>'本站已存在该文件', 'exists'=>1, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$row['id'], 'downurl'=>$downurl];

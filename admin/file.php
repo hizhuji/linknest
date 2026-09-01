@@ -215,8 +215,9 @@ function change_ispwd(obj){
 }
 function setBlock(id,status) {
 	$.ajax({
-		type : 'GET',
-		url : 'ajax_file.php?act=setBlock&id='+id+'&status='+status,
+		type : 'POST',
+		url : 'ajax_file.php?act=setBlock',
+		data : {id:id, status:status},
 		dataType : 'json',
 		success : function(data) {
 			searchSubmit();
@@ -296,8 +297,9 @@ function delFile(id) {
 	  btn: ['确定','取消'], icon: 0
 	}, function(){
 	  $.ajax({
-		type : 'GET',
-		url : 'ajax_file.php?act=delFile&id='+id,
+		type : 'POST',
+		url : 'ajax_file.php?act=delFile',
+		data : {id:id},
 		dataType : 'json',
 		success : function(data) {
 			if(data.code == 0){

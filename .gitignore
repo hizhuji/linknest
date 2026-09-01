@@ -1,0 +1,8 @@
+/config.php
+/install/install.lock
+/includes/log.txt
+/file/*
+!/file/.htaccess
+/.phpunit.result.cache
+/.idea/
+/.vscode/

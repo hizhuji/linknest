@@ -7,14 +7,16 @@ if(!$conf['userlogin']){
 }
 if(isset($_GET['logout'])){
 	if(!checkRefererHost())exit();
-	setcookie("user_token", "", time() - 1, '/');
+	pan_clear_auth_cookie("user_token");
 	@header('Content-Type: text/html; charset=UTF-8');
 	exit("<script language='javascript'>alert('您已成功注销本次登录！');window.location.href='./login.php';</script>");
 }elseif($islogin2==1){
 	@header('Content-Type: text/html; charset=UTF-8');
 	exit("<script language='javascript'>alert('您已登录！');window.location.href='./';</script>");
 }elseif(isset($_GET['act']) && $_GET['act']=='connect'){
-    @header('Content-Type: application/json; charset=UTF-8');
+	@header('Content-Type: application/json; charset=UTF-8');
+	require_post_request();
+	if(!pan_verify_request_csrf_token())exit('{"code":403,"msg":"CSRF TOKEN ERROR"}');
     $type = isset($_POST['type'])?$_POST['type']:exit('{"code":-1,"msg":"no type"}');
     if(!$conf['login_apiurl'] || !$conf['login_appid'] || !$conf['login_appkey'])exit('{"code":-1,"msg":"未配置好快捷登录接口信息"}');
     $Oauth = new \lib\Oauth($conf['login_apiurl'], $conf['login_appid'], $conf['login_appkey']);
@@ -27,8 +29,8 @@ if(isset($_GET['logout'])){
         $result = ['code'=>-1, 'msg'=>'快捷登录接口请求失败'];
     }
     exit(json_encode($result));
-}elseif($_GET['code'] && $_GET['type'] && $_GET['state']){
-	if($_GET['state'] != $_SESSION['Oauth_state']){
+}elseif(isset($_GET['code'], $_GET['type'], $_GET['state'])){
+	if(empty($_SESSION['Oauth_state']) || !hash_equals($_SESSION['Oauth_state'], $_GET['state'])){
 		sysmsg("<h2>The state does not match. You may be a victim of CSRF.</h2>");
 	}
 	$type = $_GET['type'];
@@ -81,15 +83,17 @@ if(isset($_GET['logout'])){
         $ids = implode(',',$ids);
         $DB->exec("UPDATE pre_file SET uid='{$uid}' WHERE id IN ({$ids}) AND uid=0");
     }
-    $session=md5($type.$openid.$password_hash);
-    $expiretime=time()+2592000;
-    $token=authcode("{$uid}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
-    ob_clean();
-    setcookie("user_token", $token, time() + 2592000, '/');
+	$expiretime=time()+2592000;
+	$session=hash_hmac('sha256', $type."\0".$openid, SYS_KEY);
+	session_regenerate_id(true);
+	$token=pan_create_auth_token(['type'=>'user', 'uid'=>(int)$uid, 'sid'=>$session, 'exp'=>$expiretime], SYS_KEY);
+	ob_clean();
+	pan_set_auth_cookie("user_token", $token, $expiretime);
     exit("<script language='javascript'>window.location.href='./';</script>");
 }
 
 $title = '用户登录 - ' . $conf['title'];
+$csrf_token = pan_csrf_token();
 include SYSTEM_ROOT.'header.php';
 ?>
 <div class="container">
@@ -116,7 +120,7 @@ function connect(type){
 	$.ajax({
 		type : "POST",
 		url : "login.php?act=connect",
-		data : {type:type},
+		data : {type:type, csrf_token:<?php echo json_encode($csrf_token); ?>},
 		dataType : 'json',
 		success : function(data) {
 			layer.close(ii);

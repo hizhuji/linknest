@@ -16,7 +16,7 @@ if($islogin2 && $userrow['level']>0){
 
 switch($act){
 case 'pre_upload':
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	require_csrf_token();
 	if($conf['forcelogin']==1 && !$islogin2)exit('{"code":-1,"msg":"请先登录"}');
 	$name = trim(htmlspecialchars($_POST['name']));
 	$hash = trim($_POST['hash']);
@@ -102,7 +102,7 @@ break;
 
 case 'upload_part':
 	if(!isset($_FILES['file']))exit('{"code":-1,"msg":"请选择文件"}');
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	require_csrf_token();
 	if($conf['forcelogin']==1 && !$islogin2)exit('{"code":-1,"msg":"请先登录"}');
 	$chunk = intval($_POST['chunk']);
 	$hash = trim($_POST['hash']);
@@ -177,7 +177,7 @@ case 'upload_part':
 break;
 
 case 'complete_upload':
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	require_csrf_token();
 	if($conf['forcelogin']==1 && !$islogin2)exit('{"code":-1,"msg":"请先登录"}');
 	$hash = trim($_POST['hash']);
 	if(!$_SESSION['upload'] || !$_SESSION['upload']['hash'] || $_SESSION['upload']['hash']!=$hash){
@@ -227,7 +227,7 @@ break;
 
 case 'deleteFile':
 	$hash = isset($_POST['hash'])?trim($_POST['hash']):exit('{"code":-1,"msg":"no hash"}');
-	if(!$_POST['csrf_token'] || $_POST['csrf_token']!=$_SESSION['csrf_token'])exit('{"code":-1,"msg":"CSRF TOKEN ERROR"}');
+	require_csrf_token();
 	if(!preg_match('/^[0-9a-z]{32}$/i', $hash))exit('{"code":-1,"msg":"hash error"}');
 	$row = $DB->getRow("SELECT * FROM `pre_file` WHERE `hash`=:hash", [':hash'=>$hash]);
 	if(!$row)exit('{"code":-1,"msg":"文件不存在"}');

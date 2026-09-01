@@ -13,6 +13,15 @@
   <link href="../assets/css/bootstrap-table.css?v=1" rel="stylesheet"/>
   <script src="https://s4.zstatic.net/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
   <script src="https://s4.zstatic.net/ajax/libs/twitter-bootstrap/3.4.1/js/bootstrap.min.js"></script>
+	<?php if($islogin==1){?><script>
+	window.PAN_CSRF_TOKEN = <?php echo json_encode(pan_csrf_token()); ?>;
+	$.ajaxPrefilter(function(options, originalOptions, jqXHR) {
+		var method = (options.type || 'GET').toUpperCase();
+		if (!options.crossDomain && ['POST', 'PUT', 'PATCH', 'DELETE'].indexOf(method) !== -1) {
+			jqXHR.setRequestHeader('X-CSRF-Token', window.PAN_CSRF_TOKEN);
+		}
+	});
+	</script><?php }?>
   <!--[if lt IE 9]>
     <script src="https://s4.zstatic.net/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
     <script src="https://s4.zstatic.net/ajax/libs/respond.js/1.4.2/respond.min.js"></script>

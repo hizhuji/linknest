@@ -5,30 +5,42 @@ $act=isset($_GET['act'])?daddslashes($_GET['act']):null;
 
 if(!checkRefererHost())exit('{"code":403}');
 
+if(in_array($act, ['setBlock', 'delFile', 'operation', 'saveFileInfo'], true)){
+	require_post_request();
+	require_csrf_token();
+}
+
 @header('Content-Type: application/json; charset=UTF-8');
 
 switch($act){
 case 'fileList':
-	$sql=" 1=1";
+	$conditions=['1=1'];
+	$params=[];
 	if(isset($_POST['uid']) && !empty($_POST['uid'])) {
 		$uid = intval($_POST['uid']);
-		$sql.=" AND `uid`='$uid'";
+		$conditions[]='`uid`=:uid';
+		$params[':uid']=$uid;
 	}
 	if(isset($_POST['dstatus']) && $_POST['dstatus']>-1) {
 		$dstatus = intval($_POST['dstatus']);
-		$sql.=" AND `block`={$dstatus}";
+		$conditions[]='`block`=:block';
+		$params[':block']=$dstatus;
 	}
 	if(isset($_POST['kw']) && !empty($_POST['kw'])) {
 		$type = intval($_POST['type']);
-		$kw = trim(daddslashes($_POST['kw']));
+		$kw = trim($_POST['kw']);
 		if($type == 1){
-			$sql.=" AND `name` LIKE '%{$kw}%'";
+			$conditions[]='`name` LIKE :kw';
+			$params[':kw']='%'.$kw.'%';
 		}elseif($type == 2){
-			$sql.=" AND `hash`='{$kw}'";
+			$conditions[]='`hash`=:hash';
+			$params[':hash']=$kw;
 		}elseif($type == 3){
-			$sql.=" AND `type`='{$kw}'";
+			$conditions[]='`type`=:type';
+			$params[':type']=$kw;
 		}elseif($type == 4){
-			$sql.=" AND `ip`='{$kw}'";
+			$conditions[]='`ip`=:ip';
+			$params[':ip']=$kw;
 		}
 	}
 	if($_POST['orderby'] == 1){
@@ -36,10 +48,11 @@ case 'fileList':
 	}else{
 		$orderby = 'id desc';
 	}
-	$offset = intval($_POST['offset']);
-	$limit = intval($_POST['limit']);
-	$total = $DB->getColumn("SELECT count(*) from pre_file WHERE{$sql}");
-	$list = $DB->getAll("SELECT * FROM pre_file WHERE{$sql} order by {$orderby} limit $offset,$limit");
+	$offset = max(0, intval($_POST['offset']));
+	$limit = min(100, max(1, intval($_POST['limit'])));
+	$sql = implode(' AND ', $conditions);
+	$total = $DB->getColumn("SELECT count(*) from pre_file WHERE {$sql}", $params);
+	$list = $DB->getAll("SELECT * FROM pre_file WHERE {$sql} order by {$orderby} limit $offset,$limit", $params);
 	$list2 = [];
 	foreach($list as $row){
 		$row['icon'] = type_to_icon($row['type']);
@@ -61,14 +74,14 @@ case 'fileList':
 	exit(json_encode(['total'=>$total, 'rows'=>$list2]));
 break;
 case 'setBlock':
-	$id=intval($_GET['id']);
-	$status=intval($_GET['status']);
+	$id=intval($_POST['id']);
+	$status=intval($_POST['status']);
 	$sql = "UPDATE pre_file SET `block`='$status' WHERE id='$id'";
 	if($DB->exec($sql)!==false)exit('{"code":0,"msg":"修改成功！"}');
 	else exit('{"code":-1,"msg":"修改失败['.$DB->error().']"}');
 break;
 case 'delFile':
-	$id=intval($_GET['id']);
+	$id=intval($_POST['id']);
 	$row=$DB->getRow("select * from pre_file where id='$id' limit 1");
 	if(!$row)
 		exit('{"code":-1,"msg":"当前文件不存在！"}');
@@ -86,6 +99,7 @@ case 'operation':
 	elseif($status == 1)$opname = '封禁';
 	else $opname = '删除';
 	foreach($checkbox as $id){
+		$id = intval($id);
 		if($status == 0){
 			$hash=$DB->getColumn("select hash from pre_file where id='$id' limit 1");
 			$stor->delete($hash);

@@ -17,11 +17,12 @@ class PdoHelper
 	function __construct($dbconfig)
 	{
 		try {
-			$this->db = new \PDO("mysql:host={$dbconfig['host']};dbname={$dbconfig['dbname']};port={$dbconfig['port']}",$dbconfig['user'],$dbconfig['pwd']);
+			$this->db = new \PDO("mysql:host={$dbconfig['host']};dbname={$dbconfig['dbname']};port={$dbconfig['port']};charset=utf8mb4",$dbconfig['user'],$dbconfig['pwd']);
 		} catch (\Exception $e) {
 			exit('链接数据库失败:' . $e->getMessage());
 		}
 		$this->db->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
+		$this->db->setAttribute(\PDO::ATTR_EMULATE_PREPARES, false);
 		$this->db->exec("set sql_mode = ''");
 		$this->db->exec("set names utf8mb4");
 	}

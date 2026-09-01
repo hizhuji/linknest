@@ -1,6 +1,7 @@
 <?php
 error_reporting(E_ERROR | E_WARNING | E_PARSE);
 require '../config.php';
+require_once '../includes/security.php';
 
 @header('Content-Type: text/html; charset=UTF-8');
 
@@ -31,15 +32,19 @@ if($rs = $db->query("SELECT v FROM pre_config WHERE k='version'")){
 	$version = $rs->fetchColumn();
 }
 
-if($version<1001){
-	$sqls = file_get_contents('update.sql');
-	$sqls=explode(';', $sqls);
-	$sqls[]="REPLACE INTO `pre_config` VALUES ('version', '1001')";
-	if(!$db->query("SELECT v FROM pre_config WHERE k='syskey'")->fetchColumn()){
-		$sqls[]="REPLACE INTO `pre_config` VALUES ('syskey', '".random(32)."')";
-	}
-}else{
+if($version>=1002){
 	exit('你的网站已经升级到最新版本了');
+}
+$sqls = [];
+if($version<1001){
+	$sqls = array_merge($sqls, explode(';', file_get_contents('update.sql')));
+	if(!$db->query("SELECT v FROM pre_config WHERE k='syskey'")->fetchColumn()){
+		$sqls[]="REPLACE INTO `pre_config` VALUES ('syskey', '".pan_random_string(64)."')";
+	}
+}
+if($version<1002){
+	$sqls = array_merge($sqls, explode(';', file_get_contents('update_1002.sql')));
+	$sqls[]="REPLACE INTO `pre_config` VALUES ('version', '1002')";
 }
 $success=0;$error=0;$errorMsg=null;
 foreach ($sqls as $value) {

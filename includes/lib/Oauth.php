@@ -22,7 +22,7 @@ class Oauth{
 	public function login($type){
 
 		//-------生成唯一随机串防CSRF攻击
-		$state = md5(uniqid(rand(), TRUE));
+		$state = \pan_random_string(64);
 		$_SESSION['Oauth_state'] = $state;
 
 		//-------构造请求参数列表

@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.1', '8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: curl, pdo_mysql
+          coverage: none
+      - name: Validate Composer metadata
+        run: composer validate --working-dir=includes --no-check-publish
+      - name: Install Composer dependencies
+        run: composer install --working-dir=includes --no-interaction --prefer-dist --no-progress
+      - name: Lint first-party PHP
+        run: |
+          git ls-files '*.php' ':!includes/vendor/**' ':!includes/OSS/**' ':!includes/Obs/**' ':!includes/Qcloud/**' ':!includes/Qiniu/**' ':!includes/Upyun/**' | xargs -r -n 1 php -l
+      - name: Run security tests
+        run: php tests/security_test.php

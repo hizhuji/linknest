@@ -3,8 +3,8 @@ function get_curl($url, $post=0, $referer=0, $cookie=0, $header=0, $ua=0, $nobao
 {
 	$ch = curl_init();
 	curl_setopt($ch, CURLOPT_URL, $url);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+	curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 	$httpheader[] = "Accept: */*";
 	$httpheader[] = "Accept-Encoding: gzip,deflate,sdch";
 	$httpheader[] = "Accept-Language: zh-CN,zh;q=0.8";
@@ -34,6 +34,8 @@ function get_curl($url, $post=0, $referer=0, $cookie=0, $header=0, $ua=0, $nobao
 	}
 	curl_setopt($ch, CURLOPT_ENCODING, "gzip");
 	curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+	curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+	curl_setopt($ch, CURLOPT_TIMEOUT, 30);
 	$ret = curl_exec($ch);
 	curl_close($ch);
 	return $ret;
@@ -148,14 +150,12 @@ function authcode($string, $operation = 'DECODE', $key = '', $expiry = 0) {
 }
 
 function random($length, $numeric = 0) {
-	$seed = base_convert(md5(microtime().$_SERVER['DOCUMENT_ROOT']), 16, $numeric ? 10 : 35);
-	$seed = $numeric ? (str_replace('0', '', $seed).'012340567890') : ($seed.'zZ'.strtoupper($seed));
-	$hash = '';
-	$max = strlen($seed) - 1;
-	for($i = 0; $i < $length; $i++) {
-		$hash .= $seed[mt_rand(0, $max)];
+	$value = pan_random_string($length * 2);
+	if ($numeric) {
+		$value = preg_replace('/[a-f]/', '', $value);
+		while (strlen($value) < $length) $value .= (string)random_int(0, 9);
 	}
-	return $hash;
+	return substr($value, 0, $length);
 }
 function showmsg($content = '未知的异常',$type = 4,$back = false)
 {
@@ -215,29 +215,58 @@ html{background:#eee}body{background:#fff;color:#333;font-family:"微软雅黑",
 
 if(!function_exists("is_https")){
 	function is_https() {
-		if(isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443){
-			return true;
-		}elseif(isset($_SERVER['HTTPS']) && (strtolower($_SERVER['HTTPS']) == 'on' || $_SERVER['HTTPS'] == '1')){
-			return true;
-		}elseif(isset($_SERVER['HTTP_X_CLIENT_SCHEME']) && $_SERVER['HTTP_X_CLIENT_SCHEME'] == 'https'){
-			return true;
-		}elseif(isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] == 'https'){
-			return true;
-		}elseif(isset($_SERVER['REQUEST_SCHEME']) && $_SERVER['REQUEST_SCHEME'] == 'https'){
-			return true;
-		}elseif(isset($_SERVER['HTTP_EWS_CUSTOME_SCHEME']) && $_SERVER['HTTP_EWS_CUSTOME_SCHEME'] == 'https'){
-			return true;
-		}
-		return false;
+		return pan_is_https();
 	}
 }
 
 function checkRefererHost(){
-	if(!$_SERVER['HTTP_REFERER'])return false;
+	if(empty($_SERVER['HTTP_REFERER']) || empty($_SERVER['HTTP_HOST']))return false;
 	$url_arr = parse_url($_SERVER['HTTP_REFERER']);
-	$http_host = $_SERVER['HTTP_HOST'];
-	if(strpos($http_host,':'))$http_host = substr($http_host, 0, strpos($http_host, ':'));
-	return $url_arr['host'] === $http_host;
+	if(empty($url_arr['host']))return false;
+	$http_host = strtolower(preg_replace('/:\\d+$/', '', $_SERVER['HTTP_HOST']));
+	return hash_equals($http_host, strtolower($url_arr['host']));
+}
+
+function require_post_request(){
+	if($_SERVER['REQUEST_METHOD'] !== 'POST'){
+		http_response_code(405);
+		exit('{"code":405,"msg":"Method Not Allowed"}');
+	}
+}
+
+function require_csrf_token(){
+	if(!pan_verify_request_csrf_token()){
+		http_response_code(403);
+		exit('{"code":403,"msg":"CSRF TOKEN ERROR"}');
+	}
+}
+
+function valid_jsonp_callback($callback){
+	return is_string($callback) && preg_match('/^[A-Za-z_$][A-Za-z0-9_$]{0,127}$/', $callback);
+}
+
+function valid_redirect_url($url){
+	if(!filter_var($url, FILTER_VALIDATE_URL))return false;
+	$scheme = parse_url($url, PHP_URL_SCHEME);
+	return in_array(strtolower($scheme), ['http', 'https'], true);
+}
+
+function is_rate_limited($bucket, $ip, $limit, $window){
+	global $DB;
+	$row = $DB->getRow('SELECT attempts, window_start FROM pre_rate_limit WHERE bucket=:bucket AND ip=:ip LIMIT 1', [':bucket'=>$bucket, ':ip'=>$ip]);
+	return $row && (int)$row['window_start'] >= time() - $window && (int)$row['attempts'] >= $limit;
+}
+
+function record_rate_limit_failure($bucket, $ip, $window){
+	global $DB;
+	$now = time();
+	$cutoff = $now - $window;
+	return $DB->exec('INSERT INTO pre_rate_limit (bucket, ip, attempts, window_start) VALUES (:bucket, :ip, 1, :now) ON DUPLICATE KEY UPDATE attempts=IF(window_start<:cutoff1, 1, attempts+1), window_start=IF(window_start<:cutoff2, :now2, window_start)', [':bucket'=>$bucket, ':ip'=>$ip, ':now'=>$now, ':cutoff1'=>$cutoff, ':cutoff2'=>$cutoff, ':now2'=>$now]);
+}
+
+function clear_rate_limit($bucket, $ip){
+	global $DB;
+	return $DB->exec('DELETE FROM pre_rate_limit WHERE bucket=:bucket AND ip=:ip', [':bucket'=>$bucket, ':ip'=>$ip]);
 }
 
 function checkIfActive($string) {
@@ -533,6 +562,7 @@ function writeLog($text) {
 }
 
 function get_file_ext($name){
+	$ext = '';
 	$extension=explode('.',$name);
 	if (($length = count($extension)) > 1) {
 		$ext = strtolower($extension[$length - 1]);

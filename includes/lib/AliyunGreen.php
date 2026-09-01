@@ -32,8 +32,8 @@ class HttpHelper
 		}
 		//https request
 		if (strlen($url) > 5 && stripos($url, 'https') === 0) {
-			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
+			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 		}
 		if (is_array($headers) && 0 < count($headers)) {
 			$httpHeaders = self::getHttpHearders($headers);

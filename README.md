@@ -1,22 +1,34 @@
-# 彩虹外链网盘
+# 彩虹外链网盘（社区维护版）
 
-彩虹外链网盘，是一款PHP网盘与外链分享程序，支持所有格式文件的上传，可以生成文件外链、图片外链、音乐视频外链，生成外链同时自动生成相应的UBB代码和HTML代码，还可支持文本、图片、音乐、视频在线预览，这不仅仅是一个网盘，更是一个图床亦或是音乐在线试听网站。新版本支持对接阿里云OSS、腾讯云COS、华为云OBS、又拍云、七牛云等云存储，同时增加了图片违规检测功能。
+这是基于 `netcccyun/pan` 的社区维护版本。保留原项目的 MIT 许可证和版权声明，并以安全修复、运行环境兼容、可重复发布为优先目标。
 
-### 更新日志
+支持本地存储、阿里云 OSS、腾讯云 COS、华为云 OBS、又拍云、七牛云等存储后端，提供文件外链、图片/音视频预览、分块上传和管理后台。
 
-[CHANGELOG](./CHANGELOG.md)
+## 环境要求
 
+- PHP 7.4 至 8.3
+- MySQL 5.7+ 或兼容的 MariaDB
+- PHP 扩展：`pdo_mysql`、`curl`
 
-### 演示地址
-- https://cccimg.com/
+## 安装
 
-### 部署方法
+1. 部署代码后访问 `/install/`，按页面引导填写数据库信息。
+2. 安装完成页会显示一次随机管理员密码，请立即妥善保存。
+3. `config.php` 是运行时配置，仓库只提供 `config.php.example`，不得提交实际配置或存储凭据。
 
-- 环境要求`PHP` >= 7.1、`MySQL` >= 5.5
-- 上传后直接访问，按照提示安装
-- 后台默认账号密码：admin/123456
+## 从旧版升级
 
-### 官方网站
+升级前备份数据库、`config.php` 和本地上传目录；更新代码后访问 `/install/update.php` 完成数据库升级。详细步骤见 [docs/UPGRADE.md](docs/UPGRADE.md)。
 
-- https://pan.cccyun.cc/
-- https://blog.cccyun.cn/
+升级到数据库版本 `1002` 后，管理员和用户需要重新登录。管理员使用原密码首次登录时，系统会自动将旧明文密码升级为安全哈希。
+
+## API 安全
+
+上传 API 默认关闭。启用后可在后台设置来源域名白名单和 API 密钥。建议先为调用方配置 `X-Api-Key`，再开启 API 密钥校验。
+
+## 维护
+
+- 上游：`https://github.com/netcccyun/pan`
+- 本维护版使用 `main` 作为稳定分支，版本通过 Git tag 发布。
+- 贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)，安全报告见 [SECURITY.md](SECURITY.md)。
+- 各存储后端发布前验收见 [docs/STORAGE-ACCEPTANCE.md](docs/STORAGE-ACCEPTANCE.md)。

@@ -8,38 +8,50 @@ if(!function_exists("imagecreate") || !file_exists('code.php'))$verifycode=0;
 define('IN_ADMIN', true);
 include("../includes/common.php");
 if(isset($_POST['user']) && isset($_POST['pass'])){
-	if(!$_SESSION['pass_error'])$_SESSION['pass_error']=0;
-	$user=daddslashes($_POST['user']);
-	$pass=daddslashes($_POST['pass']);
-	$code=daddslashes($_POST['code']);
-	if ($verifycode==1 && (!$code || strtolower($code) != $_SESSION['vc_code'])) {
+	$user=trim($_POST['user']);
+	$pass=$_POST['pass'];
+	$code=isset($_POST['code']) ? trim($_POST['code']) : '';
+	if (!pan_verify_request_csrf_token()) {
+		@header('Content-Type: text/html; charset=UTF-8');
+		exit("<script language='javascript'>alert('页面已过期，请刷新后重试！');history.go(-1);</script>");
+	}elseif (is_rate_limited('admin_login', $clientip, 5, 900)) {
+		@header('Content-Type: text/html; charset=UTF-8');
+		exit("<script language='javascript'>alert('登录尝试过于频繁，请15分钟后再试！');history.go(-1);</script>");
+	}elseif ($verifycode==1 && (!$code || !isset($_SESSION['vc_code']) || !hash_equals(strtolower($_SESSION['vc_code']), strtolower($code)))) {
 		unset($_SESSION['vc_code']);
+		record_rate_limit_failure('admin_login', $clientip, 900);
 		@header('Content-Type: text/html; charset=UTF-8');
 		exit("<script language='javascript'>alert('验证码错误！');history.go(-1);</script>");
-	}elseif($_SESSION['pass_error']>5) {
-		@header('Content-Type: text/html; charset=UTF-8');
-		exit("<script language='javascript'>alert('用户名或密码不正确！');history.go(-1);</script>");
-	}elseif($user==$conf['admin_user'] && $pass==$conf['admin_pwd']) {
-		$session=md5($user.$pass.$password_hash);
+	}elseif(hash_equals($conf['admin_user'], $user) && pan_verify_admin_password($pass, $conf['admin_pwd'])) {
+		if (pan_password_needs_upgrade($conf['admin_pwd'])) {
+			$conf['admin_pwd'] = password_hash($pass, PASSWORD_DEFAULT);
+			saveSetting('admin_pwd', $conf['admin_pwd']);
+		}
+		clear_rate_limit('admin_login', $clientip);
+		session_regenerate_id(true);
 		$expiretime=time()+2592000;
-		$token=authcode("{$user}\t{$session}\t{$expiretime}", 'ENCODE', SYS_KEY);
+		$session=hash_hmac('sha256', $user."\0".$conf['admin_pwd'], SYS_KEY);
+		$token=pan_create_auth_token(['type'=>'admin', 'user'=>$user, 'sid'=>$session, 'exp'=>$expiretime], SYS_KEY);
 		ob_clean();
-		setcookie("admin_token", $token, time() + 2592000);
+		pan_set_auth_cookie("admin_token", $token, $expiretime);
 		@header('Content-Type: text/html; charset=UTF-8');
 		exit("<script language='javascript'>alert('登陆管理中心成功！');window.location.href='./';</script>");
 	}else {
-		$_SESSION['pass_error']++;
+		record_rate_limit_failure('admin_login', $clientip, 900);
 		@header('Content-Type: text/html; charset=UTF-8');
 		exit("<script language='javascript'>alert('用户名或密码不正确！');history.go(-1);</script>");
 	}
 }elseif(isset($_GET['logout'])){
-	setcookie("admin_token", "", time() - 2592000);
+	pan_clear_auth_cookie("admin_token");
+	$_SESSION = [];
+	session_destroy();
 	@header('Content-Type: text/html; charset=UTF-8');
 	exit("<script language='javascript'>alert('您已成功注销本次登陆！');window.location.href='./login.php';</script>");
 }elseif($islogin==1){
 	exit("<script language='javascript'>alert('您已登陆！');window.location.href='./';</script>");
 }
 $title='用户登录';
+$csrf_token = pan_csrf_token();
 ?>
 <!DOCTYPE html>
 <html lang="zh">
@@ -72,7 +84,8 @@ body{background:linear-gradient(to right,#49bdad,#6a67c7) fixed}
   <div class="container">
       <div class="row">
           <div class="col-md-offset-4 col-md-4 col-sm-offset-3 col-sm-6">
-              <form class="form-horizontal" method="post">
+               <form class="form-horizontal" method="post">
+				   <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8'); ?>">
                   <div class="heading">管理员登录</div>
                   <div class="form-group">
                       <i class="fa fa-user"></i><input required name="user" type="text" class="form-control" placeholder="用户名">

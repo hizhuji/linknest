@@ -6,6 +6,11 @@ $act=isset($_GET['act'])?daddslashes($_GET['act']):null;
 
 if(!checkRefererHost())exit('{"code":403}');
 
+if(in_array($act, ['set', 'setUserEnable', 'saveUserInfo', 'delUser'], true)){
+	require_post_request();
+	require_csrf_token();
+}
+
 @header('Content-Type: application/json; charset=UTF-8');
 
 switch($act){
@@ -41,29 +46,36 @@ case 'iptype':
 	exit(json_encode($result));
 break;
 case 'userList':
-	$sql=" 1=1";
+	$conditions=['1=1'];
+	$params=[];
 	$type_arr = ['qq'=>'QQ','wx'=>'微信'];
 	if(isset($_POST['dstatus']) && $_POST['dstatus']>-1) {
 		$dstatus = intval($_POST['dstatus']);
-		$sql.=" AND `enable`={$dstatus}";
+		$conditions[]='`enable`=:enable';
+		$params[':enable']=$dstatus;
 	}
 	if(isset($_POST['kw']) && !empty($_POST['kw'])) {
 		$type = intval($_POST['type']);
-		$kw = trim(daddslashes($_POST['kw']));
+		$kw = trim($_POST['kw']);
 		if($type == 1){
-			$sql.=" AND `uid`='{$kw}'";
+			$conditions[]='`uid`=:uid';
+			$params[':uid']=intval($kw);
 		}elseif($type == 2){
-			$sql.=" AND `openid`='{$kw}'";
+			$conditions[]='`openid`=:openid';
+			$params[':openid']=$kw;
 		}elseif($type == 3){
-			$sql.=" AND `nickname` LIKE '%{$kw}%'";
+			$conditions[]='`nickname` LIKE :kw';
+			$params[':kw']='%'.$kw.'%';
 		}elseif($type == 4){
-			$sql.=" AND `loginip`='{$kw}'";
+			$conditions[]='`loginip`=:loginip';
+			$params[':loginip']=$kw;
 		}
 	}
-	$offset = intval($_POST['offset']);
-	$limit = intval($_POST['limit']);
-	$total = $DB->getColumn("SELECT count(*) from pre_user WHERE{$sql}");
-	$list = $DB->getAll("SELECT * FROM pre_user WHERE{$sql} order by uid desc limit $offset,$limit");
+	$offset = max(0, intval($_POST['offset']));
+	$limit = min(100, max(1, intval($_POST['limit'])));
+	$sql = implode(' AND ', $conditions);
+	$total = $DB->getColumn("SELECT count(*) from pre_user WHERE {$sql}", $params);
+	$list = $DB->getAll("SELECT * FROM pre_user WHERE {$sql} order by uid desc limit $offset,$limit", $params);
 	$list2 = [];
 	foreach($list as $row){
 		$row['type'] = $type_arr[$row['type']];

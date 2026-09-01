@@ -5,9 +5,9 @@ create table `pre_config` (
   PRIMARY KEY  (`k`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `pre_config` VALUES ('version', '1001');
+INSERT INTO `pre_config` VALUES ('version', '1002');
 INSERT INTO `pre_config` VALUES ('admin_user', 'admin');
-INSERT INTO `pre_config` VALUES ('admin_pwd', '123456');
+INSERT INTO `pre_config` VALUES ('admin_pwd', '');
 INSERT INTO `pre_config` VALUES ('blackip', '');
 INSERT INTO `pre_config` VALUES ('title', '彩虹外链网盘');
 INSERT INTO `pre_config` VALUES ('keywords', '外链网盘,免费外链,免费图床,图片外链');
@@ -30,6 +30,9 @@ INSERT INTO `pre_config` VALUES ('green_check_terrorism', '0');
 INSERT INTO `pre_config` VALUES ('green_label_porn', 'sexy,porn');
 INSERT INTO `pre_config` VALUES ('green_label_terrorism', 'bloody,explosion,outfit,logo,weapon,politics');
 INSERT INTO `pre_config` VALUES ('gg_file', '网站所有文件内容均由用户自行上传分享，本站严格遵守国家相关法律法规，尊重著作权、版权等第三方权利，如果当前文件侵犯了您的相关权利，请邮件反馈至@qq.com，我们将及时处理。');
+INSERT INTO `pre_config` VALUES ('api_open', '0');
+INSERT INTO `pre_config` VALUES ('api_token', '');
+INSERT INTO `pre_config` VALUES ('api_require_token', '1');
 
 DROP TABLE IF EXISTS `pre_file`;
 CREATE TABLE `pre_file` (
@@ -67,3 +70,11 @@ CREATE TABLE `pre_user` (
   PRIMARY KEY (`uid`),
   KEY `openid` (`openid`,`type`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 AUTO_INCREMENT=1000;
+
+CREATE TABLE `pre_rate_limit` (
+  `bucket` varchar(64) NOT NULL,
+  `ip` varchar(45) NOT NULL,
+  `attempts` smallint(5) unsigned NOT NULL DEFAULT '0',
+  `window_start` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`bucket`,`ip`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

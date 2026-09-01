@@ -79,6 +79,14 @@ $siteurl = (is_https() ? 'https://' : 'http://').$_SERVER['HTTP_HOST'].str_repla
 	  <div class="col-sm-9"><input type="text" name="api_referer" value="<?php echo $conf['api_referer']; ?>" class="form-control" placeholder="多个域名用|隔开"/><font color="green">多个域名用|隔开，不填写则不限制来源域名</font></div>
 	</div><br/>
 	<div class="form-group">
+	  <label class="col-sm-3 control-label">API 密钥校验</label>
+	  <div class="col-sm-9"><select class="form-control" name="api_require_token" default="<?php echo isset($conf['api_require_token']) ? $conf['api_require_token'] : 0; ?>"><option value="1">开启</option><option value="0">关闭</option></select><font color="green">新安装默认开启。升级旧站点时请先配置密钥再开启。</font></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">API 密钥</label>
+	  <div class="col-sm-9"><input type="text" name="api_token" value="<?php echo htmlspecialchars(isset($conf['api_token']) ? $conf['api_token'] : '', ENT_QUOTES, 'UTF-8'); ?>" class="form-control" placeholder="请使用至少 32 位随机字符串"/></div>
+	</div><br/>
+	<div class="form-group">
 	  <div class="col-sm-offset-3 col-sm-9"><input type="submit" name="submit" value="修改" class="btn btn-primary form-control"/><br/>
 	 </div>
 	</div>
@@ -103,6 +111,7 @@ API接口地址：<?php echo $siteurl?>api.php
   <tr><td>是否首页显示</td><td>show</td><td>否</td><td>1</td><td>默认为是</td></tr>
   <tr><td>是否设置密码</td><td>ispwd</td><td>否</td><td>0</td><td>默认为否</td></tr>
   <tr><td>下载密码</td><td>pwd</td><td>否</td><td>123456</td><td>默认留空</td></tr>
+	<tr><td>API 密钥</td><td>api_token</td><td>取决于后台设置</td><td></td><td>开启密钥校验时必须传递，也可使用 X-Api-Key 请求头</td></tr>
   <tr><td>返回格式</td><td>format</td><td>否</td><td>json</td><td>有json、jsonp、form三种选择
 默认为json</td></tr>
   <tr><td>跳转页面url</td><td>backurl</td><td>否</td><td>http://...</td><td>上传成功后的跳转地址
@@ -129,17 +138,19 @@ API接口地址：<?php echo $siteurl?>api.php
 </div>
 <?php
 }elseif($mod=='account_n' && $_POST['do']=='submit'){
-	if(!checkRefererHost())exit;
-	$user=$_POST['user'];
+	require_post_request();
+	if(!checkRefererHost() || !pan_verify_request_csrf_token())exit;
+	$user=trim($_POST['user']);
 	$oldpwd=$_POST['oldpwd'];
 	$newpwd=$_POST['newpwd'];
 	$newpwd2=$_POST['newpwd2'];
 	if($user==null)showmsg('用户名不能为空！',3);
 	saveSetting('admin_user',$user);
 	if(!empty($newpwd) && !empty($newpwd2)){
-		if($oldpwd!=$conf['admin_pwd'])showmsg('旧密码不正确！',3);
+		if(!pan_verify_admin_password($oldpwd, $conf['admin_pwd']))showmsg('旧密码不正确！',3);
 		if($newpwd!=$newpwd2)showmsg('两次输入的密码不一致！',3);
-		saveSetting('admin_pwd',$newpwd);
+		if(strlen($newpwd)<12)showmsg('新密码至少需要12位！',3);
+		saveSetting('admin_pwd',password_hash($newpwd, PASSWORD_DEFAULT));
 	}
 	showmsg('修改成功！请重新登录',1);
 }elseif($mod=='account'){
@@ -147,7 +158,7 @@ API接口地址：<?php echo $siteurl?>api.php
 <div class="panel panel-primary">
 <div class="panel-heading"><h3 class="panel-title">管理员账号设置</h3></div>
 <div class="panel-body">
-  <form action="./set.php?mod=account_n" method="post" class="form-horizontal" role="form"><input type="hidden" name="do" value="submit"/>
+  <form action="./set.php?mod=account_n" method="post" class="form-horizontal" role="form"><input type="hidden" name="do" value="submit"/><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(pan_csrf_token(), ENT_QUOTES, 'UTF-8'); ?>"/>
 	<div class="form-group">
 	  <label class="col-sm-2 control-label">用户名</label>
 	  <div class="col-sm-10"><input type="text" name="user" value="<?php echo $conf['admin_user']; ?>" class="form-control" required/></div>
