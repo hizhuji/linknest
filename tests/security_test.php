@@ -43,6 +43,7 @@ expect_true(!pan_share_code_is_valid('bad code'), 'Share codes should reject spa
 $sharePassword = pan_share_password_hash('share-secret');
 expect_true(pan_share_password_verify('share-secret', $sharePassword), 'Share password hashes should validate.');
 expect_true(!pan_share_password_verify('wrong', $sharePassword), 'Wrong share passwords should fail.');
+expect_true(pan_share_password_bucket(123) === 'share_pwd_123', 'Share password rate-limit buckets should be isolated by share.');
 $shareToken = pan_create_share_access_token(['id'=>12, 'code'=>'Abc_123-x'], $key, 60);
 expect_true(pan_verify_share_access_token($shareToken, ['id'=>12, 'code'=>'Abc_123-x'], $key), 'Share access tokens should be bound to a share.');
 expect_true(!pan_verify_share_access_token($shareToken, ['id'=>13, 'code'=>'Abc_123-x'], $key), 'Share access tokens must not authorize another share.');
@@ -57,6 +58,7 @@ expect_true(pan_file_access_error(['expire_at'=>'2026-09-01 11:59:59', 'count'=>
 expect_true(pan_file_access_error(['expire_at'=>null, 'count'=>3, 'max_downloads'=>3], $now) === 'limit', 'Shares at their access limit should be rejected.');
 expect_true(pan_file_access_error(['expire_at'=>'2026-09-02 12:00:00', 'count'=>2, 'max_downloads'=>3], $now) === null, 'Active shares below their access limit should be allowed.');
 expect_true(pan_share_access_error(['status'=>0, 'block'=>0, 'expire_at'=>null, 'max_accesses'=>0, 'access_count'=>0], $now) === 'revoked', 'Revoked shares should be rejected.');
+expect_true(pan_share_access_error(['status'=>1, 'deleted_at'=>'2026-09-01 00:00:00', 'block'=>0, 'expire_at'=>null, 'max_accesses'=>0, 'access_count'=>0], $now) === 'trashed', 'Trashed files should not remain publicly accessible.');
 expect_true(pan_share_access_error(['status'=>1, 'block'=>0, 'expire_at'=>'2026-09-01 11:59:59', 'max_accesses'=>0, 'access_count'=>0], $now) === 'expired', 'Expired share records should be rejected.');
 expect_true(pan_share_access_error(['status'=>1, 'block'=>0, 'expire_at'=>null, 'max_accesses'=>1, 'access_count'=>1], $now) === 'limit', 'Shares at their access limit should be rejected.');
 expect_true(pan_mask_ip('203.0.113.42') === '203.0.113.*', 'IPv4 access logs should mask the final octet.');

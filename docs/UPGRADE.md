@@ -38,6 +38,18 @@ This migration adds per-share referer rules, user-agent blocking, request-rate l
 
 For true byte-per-second throttling on large local files, use the web server's native delivery controls such as Nginx `X-Accel-Redirect`; PHP request limits and traffic caps are intended for abuse prevention, not precise transfer shaping.
 
+## Upgrade to database version 1009
+
+This migration adds the recycle-bin fields, file-version snapshots, administrator audit log, storage-health records, and a retryable storage-cleanup queue. Existing files and share links are kept as-is. New protection defaults are conservative: recycle-bin retention is 30 days, version retention is 90 days with at most 10 snapshots per file, and password-protected shares allow 5 failed attempts per IP before a 15-minute temporary lock.
+
+After upgrading, open **Admin → Operations Center** once. Set the actual retention policy, record the current backup and recovery-drill dates, run a storage health check, and configure a daily CLI job:
+
+```bash
+php /path/to/linknest/cron.php
+```
+
+The task clears only expired recycle-bin items and expired snapshots. Physical object deletion is retried through an internal cleanup queue so a temporary storage failure does not turn into silent data loss.
+
 ## API callers
 
 Existing API callers continue to work after upgrade because token enforcement is initially disabled for upgraded sites. Configure an API token in the admin API settings, update callers to send `X-Api-Key` or `api_token`, then enable API-token enforcement.

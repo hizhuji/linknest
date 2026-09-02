@@ -23,7 +23,7 @@ function pan_share_password_verify($password, $stored) {
 }
 
 function pan_share_select_sql() {
-    return "SELECT s.*, f.hash, f.name, f.type, f.size, f.block, f.hide, f.uid AS file_uid, f.ip AS upload_ip, f.addtime AS file_addtime FROM pre_share s INNER JOIN pre_file f ON f.id=s.file_id";
+    return "SELECT s.*, f.hash, f.name, f.type, f.size, f.block, f.hide, f.deleted_at, f.uid AS file_uid, f.ip AS upload_ip, f.addtime AS file_addtime FROM pre_share s INNER JOIN pre_file f ON f.id=s.file_id";
 }
 
 function pan_get_share_by_code($DB, $code) {
@@ -70,6 +70,7 @@ function pan_create_share($DB, $fileId, $options = []) {
 
 function pan_share_access_error($share, $now = null) {
     if(!$share || intval($share['status']) !== 1) return 'revoked';
+    if(!empty($share['deleted_at'])) return 'trashed';
     if(intval($share['block']) > 0) return 'blocked';
     $now = $now === null ? time() : intval($now);
     if(!empty($share['expire_at'])){
@@ -83,6 +84,7 @@ function pan_share_access_error($share, $now = null) {
 
 function pan_share_access_message($reason) {
     if($reason === 'revoked') return '该分享链接已被撤销';
+    if($reason === 'trashed') return '该文件已移入回收站';
     if($reason === 'blocked') return '该文件已被管理员封禁';
     if($reason === 'expired') return '该分享链接已过期';
     if($reason === 'limit') return '该分享链接已达到最大访问次数';
@@ -118,7 +120,7 @@ function pan_mask_ip($ip) {
 }
 
 function pan_record_share_event($DB, $share, $event, $bytes, $clientIp, $key, $retentionDays = 30) {
-    if(!in_array($event, ['download', 'preview'], true)) return false;
+    if(!in_array($event, ['download', 'preview', 'password_failed'], true)) return false;
     $bytes = max(0, intval($bytes));
     $userAgent = substr(isset($_SERVER['HTTP_USER_AGENT']) ? (string)$_SERVER['HTTP_USER_AGENT'] : '', 0, 500);
     $refererRaw = isset($_SERVER['HTTP_REFERER']) ? (string)$_SERVER['HTTP_REFERER'] : '';
@@ -139,6 +141,27 @@ function pan_record_share_event($DB, $share, $event, $bytes, $clientIp, $key, $r
     $retentionDays = max(1, min(3650, intval($retentionDays)));
     if(random_int(1, 100) === 1) $DB->exec("DELETE FROM pre_access_log WHERE created_at<DATE_SUB(NOW(),INTERVAL {$retentionDays} DAY)");
     return true;
+}
+
+function pan_share_password_bucket($shareId) {
+    return 'share_pwd_'.intval($shareId);
+}
+
+function pan_share_password_is_limited($share, $clientIp, $conf) {
+    $limit = isset($conf['share_password_limit']) ? intval($conf['share_password_limit']) : 5;
+    $window = isset($conf['share_password_window']) ? intval($conf['share_password_window']) : 900;
+    if($limit < 1 || $window < 60) return false;
+    return is_rate_limited(pan_share_password_bucket($share['id']), $clientIp, $limit, $window);
+}
+
+function pan_record_share_password_failure($DB, $share, $clientIp, $conf) {
+    $window = isset($conf['share_password_window']) ? max(60, intval($conf['share_password_window'])) : 900;
+    record_rate_limit_failure(pan_share_password_bucket($share['id']), $clientIp, $window);
+    pan_record_share_event($DB, $share, 'password_failed', 0, $clientIp, SYS_KEY, isset($conf['access_log_retention_days']) ? $conf['access_log_retention_days'] : 30);
+}
+
+function pan_clear_share_password_failures($share, $clientIp) {
+    clear_rate_limit(pan_share_password_bucket($share['id']), $clientIp);
 }
 
 function pan_get_share_logs($DB, $shareId, $limit = 10) {
@@ -293,8 +316,7 @@ function pan_delete_share($DB, $stor, $share) {
     if($DB->exec("DELETE FROM pre_share WHERE id=:id", [':id'=>$shareId]) === false) return false;
     $remaining = intval($DB->getColumn("SELECT count(*) FROM pre_share WHERE file_id=:file_id", [':file_id'=>$fileId]));
     if($remaining === 0){
-        $stor->delete($share['hash']);
-        $DB->exec("DELETE FROM pre_file WHERE id=:id", [':id'=>$fileId]);
+        $DB->exec("UPDATE pre_file SET deleted_at=NOW(),deleted_by='owner',deletion_reason='last_share_deleted' WHERE id=:id AND deleted_at IS NULL", [':id'=>$fileId]);
     }
     return true;
 }

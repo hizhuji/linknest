@@ -54,6 +54,10 @@
 		  <li class="<?php echo checkIfActive('update')?>">
 			<a href="./update.php"><i class="fa fa-refresh"></i> 在线更新</a>
 		  </li>
+		  <li class="<?php echo checkIfActive('maintenance,audit')?>">
+			<a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-heartbeat"></i> 运维中心<b class="caret"></b></a>
+			<ul class="dropdown-menu"><li><a href="./maintenance.php">健康与备份</a></li><li><a href="./audit.php">管理员审计</a></li></ul>
+		  </li>
 		  <li class="<?php echo checkIfActive('set,set_stor')?>">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-cog"></i> 系统设置<b class="caret"></b></a>
             <ul class="dropdown-menu">

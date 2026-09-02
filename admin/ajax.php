@@ -17,9 +17,9 @@ switch($act){
 case 'getcount':
 	$thtime=date("Y-m-d").' 00:00:00';
 	$lastday=date("Y-m-d",strtotime("-1 day")).' 00:00:00';
-	$count1=$DB->getColumn("SELECT count(*) from pre_file");
-	$count2=$DB->getColumn("SELECT count(*) from pre_file WHERE addtime>='$thtime'");
-	$count3=$DB->getColumn("SELECT count(*) from pre_file WHERE addtime>='$lastday' AND addtime<'$thtime'");
+	$count1=$DB->getColumn("SELECT count(*) from pre_file WHERE deleted_at IS NULL");
+	$count2=$DB->getColumn("SELECT count(*) from pre_file WHERE deleted_at IS NULL AND addtime>='$thtime'");
+	$count3=$DB->getColumn("SELECT count(*) from pre_file WHERE deleted_at IS NULL AND addtime>='$lastday' AND addtime<'$thtime'");
 	$count4=$DB->getColumn("SELECT count(*) from pre_user");
 
 	$result=["code"=>0,"count1"=>$count1,"count2"=>$count2,"count3"=>$count3,"count4"=>$count4];
@@ -53,6 +53,7 @@ case 'set':
 	foreach($_POST as $k=>$v){
 		saveSetting($k, $v);
 	}
+	pan_audit_admin_action($DB, $conf['admin_user'], 'settings_updated', 'settings', '', ['fields'=>array_values(array_filter(array_keys($_POST), function($key){ return $key !== 'csrf_token'; }))]);
 	exit('{"code":0,"msg":"succ"}');
 break;
 case 'iptype':
@@ -106,14 +107,14 @@ case 'setUserEnable':
 	$uid=intval($_POST['uid']);
 	$enable=intval($_POST['enable']);
 	$sql = "UPDATE pre_user SET enable='$enable' WHERE uid='$uid'";
-	if($DB->exec($sql)!==false)exit('{"code":0,"msg":"修改用户成功！"}');
+	if($DB->exec($sql)!==false){ pan_audit_admin_action($DB, $conf['admin_user'], $enable ? 'user_enabled' : 'user_disabled', 'user', $uid); exit('{"code":0,"msg":"修改用户成功！"}'); }
 	else exit('{"code":-1,"msg":"修改用户失败['.$DB->error().']"}');
 break;
 case 'saveUserInfo':
 	$uid=intval($_POST['uid']);
 	$level=intval($_POST['level']);
 	$sql = "UPDATE pre_user SET level='$level' WHERE uid='$uid'";
-	if($DB->exec($sql)!==false)exit('{"code":0,"msg":"修改用户成功！"}');
+	if($DB->exec($sql)!==false){ pan_audit_admin_action($DB, $conf['admin_user'], 'user_level_updated', 'user', $uid); exit('{"code":0,"msg":"修改用户成功！"}'); }
 	else exit('{"code":-1,"msg":"修改用户失败['.$DB->error().']"}');
 break;
 case 'delUser':
@@ -122,7 +123,7 @@ case 'delUser':
 	if(!$row)
 		exit('{"code":-1,"msg":"当前用户不存在！"}');
 	$sql = "DELETE FROM pre_user WHERE uid='$uid'";
-	if($DB->exec($sql))exit('{"code":0,"msg":"删除文件成功！"}');
+	if($DB->exec($sql)){ pan_audit_admin_action($DB, $conf['admin_user'], 'user_deleted', 'user', $uid); exit('{"code":0,"msg":"删除用户成功！"}'); }
 	else exit('{"code":-1,"msg":"删除文件失败['.$DB->error().']"}');
 break;
 default:

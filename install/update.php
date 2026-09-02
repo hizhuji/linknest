@@ -32,7 +32,7 @@ if($rs = $db->query("SELECT v FROM pre_config WHERE k='version'")){
 	$version = $rs->fetchColumn();
 }
 
-if($version>=1008){
+if($version>=1009){
 	exit('你的网站已经升级到最新版本了');
 }
 $sqls = [];
@@ -70,6 +70,10 @@ if($version<1008){
 	$sqls = array_merge($sqls, explode(';', file_get_contents(__DIR__.'/update_1008.sql')));
 	$sqls[]="REPLACE INTO `pre_config` VALUES ('version', '1008')";
 }
+if($version<1009){
+	$sqls = array_merge($sqls, explode(';', file_get_contents(__DIR__.'/update_1009.sql')));
+	$sqls[]="REPLACE INTO `pre_config` VALUES ('version', '1009')";
+}
 $success=0;$error=0;$errorMsg=null;
 foreach ($sqls as $value) {
 	$value=trim($value);
@@ -78,13 +82,17 @@ foreach ($sqls as $value) {
 		$error++;
 		$dberror=$db->errorInfo();
 		$errorMsg.=$dberror[2]."<br>";
+		break;
 	}else{
 		$success++;
 	}
 }
+if($version < 1009 && $error === 0){
+	pan_audit_admin_action($DB, $conf['admin_user'], 'database_upgraded', 'database', '1009', ['from_version'=>intval($version), 'to_version'=>1009]);
+}
 echo '成功执行SQL语句'.$success.'条！<br/>';
 if($errorMsg){
-//echo '<div class="alert alert-danger text-center" role="alert">'.$errorMsg.'</div>';
+	exit('数据库升级未完成，请检查数据库权限或表结构后重试。<br>'.$errorMsg);
 }
 exit("<script language='javascript'>alert('网站数据库升级完成！');window.location.href='../';</script>");
 ?>

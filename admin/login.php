@@ -18,6 +18,7 @@ if(isset($_POST['user']) && isset($_POST['pass'])){
 	}elseif ($verifycode==1 && (!$code || !isset($_SESSION['vc_code']) || !hash_equals(strtolower($_SESSION['vc_code']), strtolower($code)))) {
 		unset($_SESSION['vc_code']);
 		record_rate_limit_failure('admin_login', $clientip, 900);
+		pan_audit_admin_action($DB, $conf['admin_user'], 'admin_login_failed', 'admin', '', ['reason'=>'captcha']);
 		@header('Content-Type: text/html; charset=UTF-8');
 		exit("<script language='javascript'>alert('验证码错误！');history.go(-1);</script>");
 	}elseif(hash_equals($conf['admin_user'], $user) && pan_verify_admin_password($pass, $conf['admin_pwd'])) {
@@ -26,6 +27,7 @@ if(isset($_POST['user']) && isset($_POST['pass'])){
 			saveSetting('admin_pwd', $conf['admin_pwd']);
 		}
 		clear_rate_limit('admin_login', $clientip);
+		pan_audit_admin_action($DB, $conf['admin_user'], 'admin_login_succeeded', 'admin');
 		session_regenerate_id(true);
 		$expiretime=time()+2592000;
 		$session=hash_hmac('sha256', $user."\0".$conf['admin_pwd'], SYS_KEY);
@@ -36,6 +38,7 @@ if(isset($_POST['user']) && isset($_POST['pass'])){
 		exit("<script language='javascript'>alert('登陆管理中心成功！');window.location.href='./';</script>");
 	}else {
 		record_rate_limit_failure('admin_login', $clientip, 900);
+		pan_audit_admin_action($DB, $conf['admin_user'], 'admin_login_failed', 'admin', '', ['reason'=>'credentials']);
 		@header('Content-Type: text/html; charset=UTF-8');
 		exit("<script language='javascript'>alert('用户名或密码不正确！');history.go(-1);</script>");
 	}

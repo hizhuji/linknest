@@ -161,6 +161,7 @@ API接口地址：<?php echo $siteurl?>api.php
 		if(strlen($newpwd)<12)showmsg('新密码至少需要12位！',3);
 		saveSetting('admin_pwd',password_hash($newpwd, PASSWORD_DEFAULT));
 	}
+	pan_audit_admin_action($DB, $conf['admin_user'], 'admin_account_updated', 'admin', '', ['username_changed'=>$user !== $conf['admin_user'], 'password_changed'=>!empty($newpwd)]);
 	showmsg('修改成功！请重新登录',1);
 }elseif($mod=='account'){
 ?>

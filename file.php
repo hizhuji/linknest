@@ -83,17 +83,29 @@ if($view_type == 'image'){
     <div class="row">
 <?php
 if($share['password']!=null){
+  $passwordError = '';
   if($_SERVER['REQUEST_METHOD'] === 'POST'){
     if(!pan_verify_request_csrf_token()){
       http_response_code(403);
       sysmsg('页面已过期，请刷新后重试。');
     }
-    $submittedPassword = isset($_POST['pwd']) ? (string)$_POST['pwd'] : '';
-    if(pan_share_password_verify($submittedPassword, $share['password'])) $accessToken = pan_create_share_access_token($share, SYS_KEY);
+    if(pan_share_password_is_limited($share, $clientip, $conf)){
+      $passwordError = '密码尝试过于频繁，请稍后再试。';
+    }else{
+      $submittedPassword = isset($_POST['pwd']) ? (string)$_POST['pwd'] : '';
+      if(pan_share_password_verify($submittedPassword, $share['password'])){
+        pan_clear_share_password_failures($share, $clientip);
+        $accessToken = pan_create_share_access_token($share, SYS_KEY);
+      }else{
+        pan_record_share_password_failure($DB, $share, $clientip, $conf);
+        $passwordError = pan_share_password_is_limited($share, $clientip, $conf) ? '密码尝试次数已达到上限，请稍后再试。' : '提取密码不正确，请重试。';
+      }
+    }
   }
   if(!pan_verify_share_access_token($accessToken, $share, SYS_KEY)){ ?>
   <meta http-equiv="content-type" content="text/html;charset=utf-8"/>
   <div class="panel panel-default"><div class="panel-heading"><h3 class="panel-title">请输入提取密码</h3></div><div class="panel-body">
+  <?php if($passwordError !== ''){?><div class="alert alert-warning"><?php echo htmlspecialchars($passwordError, ENT_QUOTES, 'UTF-8')?></div><?php }?>
   <form method="post" action="file.php?share=<?php echo rawurlencode($shareCode)?>">
     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8')?>">
     <div class="form-group"><input class="form-control" type="password" name="pwd" autocomplete="off" required></div>

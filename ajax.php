@@ -64,7 +64,7 @@ case 'pre_upload':
 			exit('{"code":-1,"msg":"你今天上传文件的数量已超过限制"}');
 		}
 	}
-	$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
+	$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash AND deleted_at IS NULL", [':hash'=>$hash]);
 	if($row){
 		$share = pan_create_share($DB, $row['id'], ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>($uid?$uid:0)]);
 		if(!$share)exit('{"code":-1,"msg":"创建分享链接失败"}');
@@ -157,7 +157,7 @@ case 'upload_part':
 	$expire_at = $_SESSION['upload']['expire_at'];
 	$max_downloads = intval($_SESSION['upload']['max_downloads']);
 
-	$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
+	$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash AND deleted_at IS NULL", [':hash'=>$hash]);
 	if($row){
 		$share = pan_create_share($DB, $row['id'], ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>($uid?$uid:0)]);
 		if(!$share)exit('{"code":-1,"msg":"创建分享链接失败"}');
@@ -214,7 +214,7 @@ case 'complete_upload':
 	$expire_at = $_SESSION['upload']['expire_at'];
 	$max_downloads = intval($_SESSION['upload']['max_downloads']);
 
-	$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash", [':hash'=>$hash]);
+	$row = $DB->getRow("SELECT * FROM pre_file WHERE hash=:hash AND deleted_at IS NULL", [':hash'=>$hash]);
 	if($row){
 		$share = pan_create_share($DB, $row['id'], ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>($uid?$uid:0)]);
 		if(!$share)exit('{"code":-1,"msg":"创建分享链接失败"}');

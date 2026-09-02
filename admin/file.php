@@ -80,10 +80,23 @@ if($islogin==1){}else exit("<script language='javascript'>window.location.href='
 							<p class="help-block">0 表示不限次数</p>
 						</div>
 					</div>
+					<hr/>
+					<div class="form-group">
+						<label class="col-sm-2 control-label no-padding-right">替换文件</label>
+						<div class="col-sm-10">
+							<input type="file" class="form-control" name="replacement" id="replacement">
+							<p class="help-block">替换后会自动保留当前内容为历史版本，分享链接不变。</p>
+						</div>
+					</div>
+					<div class="form-group">
+						<label class="col-sm-2 control-label no-padding-right">版本备注</label>
+						<div class="col-sm-10"><input type="text" class="form-control" name="version_note" id="version_note" maxlength="500"></div>
+					</div>
 				</form>
 			</div>
 			<div class="modal-footer">
 				<button type="button" class="btn btn-white" data-dismiss="modal">关闭</button>
+				<button type="button" class="btn btn-default" id="replace" onclick="replaceFile()">替换并留存版本</button>
 				<button type="button" class="btn btn-primary" id="store" onclick="save()">保存</button>
 			</div>
 		</div>
@@ -103,7 +116,7 @@ if($islogin==1){}else exit("<script language='javascript'>window.location.href='
 			<input type="text" class="form-control" name="uid" style="width: 100px;" placeholder="UID">
 			</div>
 			<div class="form-group">
-			<select id="dstatus" name="dstatus" class="form-control"><option value="-1">全部状态</option><option value="0">正常文件</option><option value="1">已屏蔽文件</option><option value="2">待审核文件</option></select>
+			<select id="dstatus" name="dstatus" class="form-control"><option value="-1">全部文件</option><option value="0">正常文件</option><option value="1">已屏蔽文件</option><option value="2">待审核文件</option><option value="3">回收站</option></select>
 		    </div>
 			<div class="form-group">
 			<select id="orderby" name="orderby" class="form-control"><option value="0">默认排序</option><option value="1">按访问量排序</option></select>
@@ -114,7 +127,7 @@ if($islogin==1){}else exit("<script language='javascript'>window.location.href='
 			</div>
 			<div class="btn-group" role="group">
 				<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">批量操作 <span class="caret"></span></button>
-				<ul class="dropdown-menu"><li><a href="javascript:operation(0)"><i class="fa fa-trash"></i>  删除</a></li><li><a href="javascript:operation(1)"><i class="fa fa-times-circle"></i>  封禁</a></li><li><a href="javascript:operation(2)"><i class="fa fa-check-circle"></i>  解封</a></li></ul>
+				<ul class="dropdown-menu"><li><a href="javascript:operation(0)"><i class="fa fa-trash"></i> 移入回收站</a></li><li><a href="javascript:operation(3)"><i class="fa fa-undo"></i> 恢复</a></li><li><a href="javascript:operation(4)"><i class="fa fa-times"></i> 彻底删除</a></li><li role="separator" class="divider"></li><li><a href="javascript:operation(1)"><i class="fa fa-times-circle"></i> 封禁</a></li><li><a href="javascript:operation(2)"><i class="fa fa-check-circle"></i> 解封</a></li></ul>
 			</div>
 		</form>
 		<table id="listTable">
@@ -200,6 +213,13 @@ $(document).ready(function(){
 				}
 			},
 			{
+				field: 'version_count',
+				title: '版本',
+				formatter: function(value, row) {
+					return '<a href="file-versions.php?id='+row.id+'" class="btn btn-xs btn-default">'+(parseInt(value) || 0)+' 个快照</a>';
+				}
+			},
+			{
 				field: 'ip',
 				title: '上传IP/访问量',
 				formatter: function(value, row, index) {
@@ -223,7 +243,10 @@ $(document).ready(function(){
 				field: 'status',
 				title: '操作',
 				formatter: function(value, row, index) {
-					return '<a href="javascript:editframe('+row.id+')" class="btn btn-xs btn-info">编辑</a>&nbsp;<a href="'+row.pageurl+'" class="btn btn-xs btn-warning" target="_blank">查看</a>&nbsp;<a href="javascript:delFile('+row.id+')" class="btn btn-xs btn-danger">删除</a></td></tr>';
+					if(row.is_deleted){
+						return '<a href="javascript:restoreFile('+row.id+')" class="btn btn-xs btn-success">恢复</a>&nbsp;<a href="javascript:purgeFile('+row.id+')" class="btn btn-xs btn-danger">彻底删除</a>';
+					}
+					return '<a href="javascript:editframe('+row.id+')" class="btn btn-xs btn-info">编辑</a>&nbsp;<a href="file-versions.php?id='+row.id+'" class="btn btn-xs btn-default">版本</a>&nbsp;<a href="'+row.pageurl+'" class="btn btn-xs btn-warning" target="_blank">查看</a>&nbsp;<a href="javascript:delFile('+row.id+')" class="btn btn-xs btn-danger">回收站</a>';
 				}
 			},
 		],
@@ -320,7 +343,7 @@ function save(){
 	});
 }
 function delFile(id) {
-	var confirmobj = layer.confirm('你确定要删除此文件吗？', {
+	var confirmobj = layer.confirm('确定将此文件移入回收站吗？在保留期内可以恢复。', {
 	  btn: ['确定','取消'], icon: 0
 	}, function(){
 	  $.ajax({
@@ -344,12 +367,38 @@ function delFile(id) {
 	  layer.close(confirmobj);
 	});
 }
+function replaceFile(){
+	var input = document.getElementById('replacement');
+	if(!input.files || !input.files.length){ layer.msg('请先选择要替换的文件'); return; }
+	var formData = new FormData();
+	formData.append('id', $('#form-store #id').val());
+	formData.append('replacement', input.files[0]);
+	formData.append('note', $('#version_note').val());
+	var ii = layer.load(2, {shade:[0.1,'#fff']});
+	$.ajax({type:'POST',url:'ajax_file.php?act=replaceFile',data:formData,processData:false,contentType:false,dataType:'json',success:function(data){
+		layer.close(ii);
+		if(data.code === 0){ $('#replacement').val(''); $('#version_note').val(''); searchSubmit(); layer.alert(data.msg,{icon:1}); }
+		else layer.alert(data.msg,{icon:2});
+	},error:function(){layer.close(ii);layer.msg('服务器错误');}});
+}
+function restoreFile(id) {
+	$.post('ajax_file.php?act=restoreFile', {id:id}, function(data) {
+		if(data.code === 0){ searchSubmit(); layer.msg(data.msg); }else layer.alert(data.msg, {icon:2});
+	}, 'json');
+}
+function purgeFile(id) {
+	if(!confirm('彻底删除后无法恢复，确定继续吗？')) return;
+	$.post('ajax_file.php?act=purgeFile', {id:id}, function(data) {
+		if(data.code === 0){ searchSubmit(); layer.msg(data.msg); }else layer.alert(data.msg, {icon:2});
+	}, 'json');
+}
 function operation(status){
 	var selected = $('#listTable').bootstrapTable('getSelections');
 	if(selected.length == 0){
 		layer.msg('未选中文件', {time:1500});return;
 	}
-	if(status == 0 && !confirm('确定要删除已选中的'+selected.length+'个文件吗？')) return;
+	if(status == 0 && !confirm('确定将已选中的'+selected.length+'个文件移入回收站吗？')) return;
+	if(status == 4 && !confirm('彻底删除已选中的'+selected.length+'个文件后无法恢复，确定继续吗？')) return;
 	var checkbox = new Array();
 	$.each(selected, function(key, item){
 		checkbox.push(item.id)
