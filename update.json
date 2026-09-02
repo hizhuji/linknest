@@ -6,7 +6,7 @@
   "min_version": "1601",
   "database_version": "1010",
   "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.9.0.zip",
-  "sha256": "PENDING",
+  "sha256": "678e77572f2ca616cf2b344cbc26289c417412ff451632efd6482df434f7d58c",
   "changelog": [
     "新增登录用户标签、收藏与多条件筛选，后台文件管理同步支持标签、收藏和大小范围。",
     "新增用户存储空间、文件数量、每日上传配额与用量校准；默认只统计，不影响现有上传。",
