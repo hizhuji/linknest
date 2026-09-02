@@ -57,3 +57,4 @@ LinkNest 是一个面向自建站点的文件外链、分享与网盘挂载程�
 - LinkNest 使用 `main` 作为稳定分支，版本通过 Git tag 发布。
 - 贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)，安全报告见 [SECURITY.md](SECURITY.md)。
 - 各存储后端发布前验收见 [docs/STORAGE-ACCEPTANCE.md](docs/STORAGE-ACCEPTANCE.md)。
+- 下一阶段产品路线见 [docs/V6.9-ROADMAP.md](docs/V6.9-ROADMAP.md)。
