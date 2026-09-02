@@ -6,7 +6,7 @@
   "min_version": "1601",
   "database_version": "1009",
   "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.8.0.zip",
-  "sha256": "0a80effd0f5063b9fb3031888d5f3f6dd1d14f5d86b5afa0aad1278aab7bc36e",
+  "sha256": "81c67e829b3f778061ee52854f5c7313390f38e36fc3df506d28dd60168f610a",
   "changelog": [
     "新增回收站与可恢复删除，默认保留 30 天。",
     "新增后台替换文件的历史版本快照与恢复能力。",

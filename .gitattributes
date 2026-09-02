@@ -1,2 +1,4 @@
 releases/*.zip export-ignore
 update.json export-ignore
+.github export-ignore
+releases export-ignore
