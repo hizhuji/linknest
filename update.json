@@ -1,20 +1,19 @@
 {
   "schema": 1,
-  "version": "1671",
-  "version_name": "6.7.1",
+  "version": "1680",
+  "version_name": "6.8.0",
   "released_at": "2026-09-02",
   "min_version": "1601",
-  "database_version": "1008",
-  "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.7.1.zip",
-  "sha256": "fb47567a41dd3f9c211392be5a4f9aead290d2c6735feba5237ec44f78171ef1",
+  "database_version": "1009",
+  "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.8.0.zip",
+  "sha256": "0a80effd0f5063b9fb3031888d5f3f6dd1d14f5d86b5afa0aad1278aab7bc36e",
   "changelog": [
-    "紧急修复数据库升级页重复声明 random() 函数导致的致命错误。",
-    "同步移除安装页中未使用的重复函数定义，并增加回归测试。",
-    "数据库版本保持 1008，已经完成迁移的网站无需再次升级数据库。",
-    "完成文件实体与分享链接分离，同一文件可创建多个独立短链接。",
-    "新增自定义短码、一次性分享、单独撤销/恢复和脱敏访问日志。",
-    "新增来源域名与客户端防盗链、每分钟请求限制和每日/月流量上限。",
-    "新增公网 HTTPS Webhook 告警，并对同类告警自动去重。",
+    "新增回收站与可恢复删除，默认保留 30 天。",
+    "新增后台替换文件的历史版本快照与恢复能力。",
+    "新增管理员审计日志和 CSV 导出。",
+    "新增分享密码错误专用限频与临时锁定。",
+    "新增存储健康检查、备份状态记录和 CLI 维护任务。",
+    "数据库升级至 1009，物理删除通过可重试存储清理队列执行。",
     "升级保留现有文件、账号、设置和旧链接，无需重新安装。"
   ]
 }
