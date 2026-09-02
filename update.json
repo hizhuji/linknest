@@ -6,7 +6,7 @@
   "min_version": "1601",
   "database_version": "1011",
   "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.9.1.zip",
-  "sha256": "PENDING",
+  "sha256": "2fe03f958a78247d831cc77a3cd75ca0e512aa6c16689ec030a5d42cef03e2e5",
   "changelog": [
     "每日维护任务仅校准近期有文件用量变动的账户，单次最多处理 200 个，避免扫描全体用户。",
     "修复用量校准会清零当天上传累计的问题；校准只修正已用空间和文件数量。",
