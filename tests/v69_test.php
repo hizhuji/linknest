@@ -23,5 +23,7 @@ $created = pan_api_key_create($db, 1000, 'test key', ['files.upload', 'invalid']
 v69_expect(is_array($created) && strpos($created['secret'], 'lnk_') === 0, 'New API Key should return an LNK secret once.');
 v69_expect(password_verify($created['secret'], $db->params[':hash']), 'Only a password hash should be sent to persistence.');
 v69_expect(!in_array($created['secret'], $db->params, true), 'The raw API Key must never be persisted.');
+v69_expect(pan_api_key_record_daily_event($db, 42, 'denied', 'scope'), 'Denied API Key attempts should aggregate into a daily record.');
+v69_expect($db->params[':reason'] === 'scope', 'Daily denied-event aggregation should retain only the reason code.');
 
 echo "v6.9 tests passed\n";

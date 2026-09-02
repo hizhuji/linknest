@@ -36,7 +36,7 @@ if($act === 'list_keys'){
     $uid = intval(isset($_GET['uid']) ? $_GET['uid'] : 0);
     $where = $uid > 0 ? 'WHERE k.uid=:uid' : '';
     $params = $uid > 0 ? [':uid'=>$uid] : [];
-    $rows = $DB->getAll("SELECT k.*,u.nickname,COALESCE(today.requests,0) AS today_requests,COALESCE(today.bytes,0) AS today_bytes FROM pre_api_key k LEFT JOIN pre_user u ON u.uid=k.uid LEFT JOIN pre_api_key_usage today ON today.key_id=k.id AND today.usage_date=CURDATE() {$where} ORDER BY k.id DESC LIMIT 200", $params);
+    $rows = $DB->getAll("SELECT k.*,u.nickname,COALESCE(today.requests,0) AS today_requests,COALESCE(today.bytes,0) AS today_bytes,COALESCE(today.denied_requests,0) AS today_denied_requests,today.last_denied_reason FROM pre_api_key k LEFT JOIN pre_user u ON u.uid=k.uid LEFT JOIN pre_api_key_usage today ON today.key_id=k.id AND today.usage_date=CURDATE() {$where} ORDER BY k.id DESC LIMIT 200", $params);
     exit(json_encode(['code'=>0, 'rows'=>$rows]));
 }
 if($act === 'create_key'){

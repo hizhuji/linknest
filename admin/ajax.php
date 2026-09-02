@@ -44,6 +44,7 @@ case 'set':
 	}
 	if(isset($_POST['webdav_root'])) $_POST['webdav_root'] = trim(str_replace('\\', '/', $_POST['webdav_root']), '/');
 	if(isset($_POST['access_log_retention_days'])) $_POST['access_log_retention_days'] = max(1, min(3650, intval($_POST['access_log_retention_days'])));
+	if(isset($_POST['api_key_usage_retention_days'])) $_POST['api_key_usage_retention_days'] = max(30, min(3650, intval($_POST['api_key_usage_retention_days'])));
 	if(isset($_POST['user_quota_bytes_mb'])){
 		$_POST['user_quota_bytes'] = max(0, intval(floatval($_POST['user_quota_bytes_mb']) * 1048576));
 		unset($_POST['user_quota_bytes_mb']);

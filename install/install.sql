@@ -5,7 +5,7 @@ create table `pre_config` (
   PRIMARY KEY  (`k`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `pre_config` VALUES ('version', '1010');
+INSERT INTO `pre_config` VALUES ('version', '1011');
 INSERT INTO `pre_config` VALUES ('admin_user', 'admin');
 INSERT INTO `pre_config` VALUES ('admin_pwd', '');
 INSERT INTO `pre_config` VALUES ('blackip', '');
@@ -259,7 +259,7 @@ CREATE TABLE `pre_user_quota` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `pre_user_usage` (
-  `uid` int(11) unsigned NOT NULL, `used_bytes` bigint(20) unsigned NOT NULL DEFAULT '0', `file_count` int(11) unsigned NOT NULL DEFAULT '0', `daily_upload_bytes` bigint(20) unsigned NOT NULL DEFAULT '0', `daily_upload_date` date NOT NULL, `updated_at` datetime NOT NULL,
+  `uid` int(11) unsigned NOT NULL, `used_bytes` bigint(20) unsigned NOT NULL DEFAULT '0', `file_count` int(11) unsigned NOT NULL DEFAULT '0', `daily_upload_bytes` bigint(20) unsigned NOT NULL DEFAULT '0', `daily_upload_date` date NOT NULL, `updated_at` datetime NOT NULL, `reconciled_at` datetime DEFAULT NULL,
   PRIMARY KEY (`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -269,7 +269,7 @@ CREATE TABLE `pre_api_key` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `pre_api_key_usage` (
-  `key_id` bigint(20) unsigned NOT NULL, `usage_date` date NOT NULL, `requests` int(11) unsigned NOT NULL DEFAULT '0', `bytes` bigint(20) unsigned NOT NULL DEFAULT '0', `updated_at` datetime NOT NULL,
+  `key_id` bigint(20) unsigned NOT NULL, `usage_date` date NOT NULL, `requests` int(11) unsigned NOT NULL DEFAULT '0', `bytes` bigint(20) unsigned NOT NULL DEFAULT '0', `denied_requests` int(11) unsigned NOT NULL DEFAULT '0', `last_denied_reason` varchar(40) DEFAULT NULL, `last_denied_at` datetime DEFAULT NULL, `updated_at` datetime NOT NULL,
   PRIMARY KEY (`key_id`,`usage_date`), KEY `usage_date` (`usage_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -277,3 +277,4 @@ INSERT INTO `pre_config` VALUES ('user_quota_enforced','0');
 INSERT INTO `pre_config` VALUES ('user_quota_bytes','0');
 INSERT INTO `pre_config` VALUES ('user_quota_files','0');
 INSERT INTO `pre_config` VALUES ('user_daily_upload_bytes','0');
+INSERT INTO `pre_config` VALUES ('api_key_usage_retention_days','180');

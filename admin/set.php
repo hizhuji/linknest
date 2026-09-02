@@ -94,6 +94,10 @@ if($mod=='site'){
 	  <div class="col-sm-9"><input type="text" name="api_token" value="<?php echo htmlspecialchars(isset($conf['api_token']) ? $conf['api_token'] : '', ENT_QUOTES, 'UTF-8'); ?>" class="form-control" placeholder="请使用至少 32 位随机字符串"/></div>
 	</div><br/>
 	<div class="form-group">
+	  <label class="col-sm-3 control-label">API Key 日汇总保留</label>
+	  <div class="col-sm-9"><div class="input-group"><input type="number" min="30" max="3650" name="api_key_usage_retention_days" value="<?php echo max(30, intval(isset($conf['api_key_usage_retention_days']) ? $conf['api_key_usage_retention_days'] : 180)); ?>" class="form-control"><span class="input-group-addon">天</span></div><p class="help-block">受限 API Key 的成功/拒绝调用只按天汇总，计划任务会自动清理超过保留期的统计。</p></div>
+	</div><br/>
+	<div class="form-group">
 	  <div class="col-sm-offset-3 col-sm-9"><input type="submit" name="submit" value="修改" class="btn btn-primary form-control"/><br/>
 	 </div>
 	</div>

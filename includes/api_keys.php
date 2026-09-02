@@ -37,26 +37,42 @@ function pan_api_key_ip_allowed($rules, $ip) {
     return false;
 }
 
+function pan_api_key_record_daily_event($DB, $keyId, $event, $reason = null) {
+    $keyId = intval($keyId);
+    if($keyId < 1) return false;
+    if($event === 'denied'){
+        return $DB->exec("INSERT INTO pre_api_key_usage (key_id,usage_date,requests,bytes,denied_requests,last_denied_reason,last_denied_at,updated_at) VALUES (:key_id,CURDATE(),0,0,1,:reason,NOW(),NOW()) ON DUPLICATE KEY UPDATE denied_requests=denied_requests+1,last_denied_reason=VALUES(last_denied_reason),last_denied_at=NOW(),updated_at=NOW()", [':key_id'=>$keyId, ':reason'=>substr((string)$reason, 0, 40)]) !== false;
+    }
+    return true;
+}
+
 function pan_api_key_authorize($DB, $secret, $scope, $clientIp, $bytes = 0) {
     if(strlen($secret) < 21 || strpos($secret, 'lnk_') !== 0) return ['ok'=>false, 'reason'=>'invalid'];
     $prefix = substr($secret, 0, 20);
     $key = $DB->getRow("SELECT k.*,u.enable AS user_enabled FROM pre_api_key k INNER JOIN pre_user u ON u.uid=k.uid WHERE k.key_prefix=:prefix LIMIT 1", [':prefix'=>$prefix]);
     if(!$key || !password_verify($secret, $key['secret_hash'])) return ['ok'=>false, 'reason'=>'invalid'];
     $keyId = intval($key['id']);
-    if(intval($key['user_enabled']) !== 1) return ['ok'=>false, 'reason'=>'revoked', 'key'=>$key];
-    if($key['revoked_at'] !== null) return ['ok'=>false, 'reason'=>'revoked', 'key'=>$key];
-    if($key['expires_at'] !== null && strtotime($key['expires_at']) <= time()) return ['ok'=>false, 'reason'=>'expired', 'key'=>$key];
-    if(!pan_api_key_ip_allowed($key['ip_rules'], $clientIp)) return ['ok'=>false, 'reason'=>'ip', 'key'=>$key];
+    if(intval($key['user_enabled']) !== 1){ pan_api_key_record_daily_event($DB, $keyId, 'denied', 'revoked'); return ['ok'=>false, 'reason'=>'revoked', 'key'=>$key]; }
+    if($key['revoked_at'] !== null){ pan_api_key_record_daily_event($DB, $keyId, 'denied', 'revoked'); return ['ok'=>false, 'reason'=>'revoked', 'key'=>$key]; }
+    if($key['expires_at'] !== null && strtotime($key['expires_at']) <= time()){ pan_api_key_record_daily_event($DB, $keyId, 'denied', 'expired'); return ['ok'=>false, 'reason'=>'expired', 'key'=>$key]; }
+    if(!pan_api_key_ip_allowed($key['ip_rules'], $clientIp)){ pan_api_key_record_daily_event($DB, $keyId, 'denied', 'ip'); return ['ok'=>false, 'reason'=>'ip', 'key'=>$key]; }
     $scopes = pan_normalize_api_scopes($key['scopes']);
-    if(!in_array($scope, $scopes, true)) return ['ok'=>false, 'reason'=>'scope', 'key'=>$key];
+    if(!in_array($scope, $scopes, true)){ pan_api_key_record_daily_event($DB, $keyId, 'denied', 'scope'); return ['ok'=>false, 'reason'=>'scope', 'key'=>$key]; }
     $usage = $DB->getRow("SELECT requests,bytes FROM pre_api_key_usage WHERE key_id=:key_id AND usage_date=CURDATE() LIMIT 1", [':key_id'=>$keyId]);
     $requests = intval($usage ? $usage['requests'] : 0);
     $usedBytes = intval($usage ? $usage['bytes'] : 0);
-    if(intval($key['request_limit']) > 0 && $requests + 1 > intval($key['request_limit'])) return ['ok'=>false, 'reason'=>'requests', 'key'=>$key];
-    if(intval($key['daily_traffic_limit']) > 0 && $usedBytes + max(0, intval($bytes)) > intval($key['daily_traffic_limit'])) return ['ok'=>false, 'reason'=>'traffic', 'key'=>$key];
-    $DB->exec("INSERT INTO pre_api_key_usage (key_id,usage_date,requests,bytes,updated_at) VALUES (:key_id,CURDATE(),1,:bytes,NOW()) ON DUPLICATE KEY UPDATE requests=requests+1,bytes=bytes+VALUES(bytes),updated_at=NOW()", [':key_id'=>$keyId, ':bytes'=>max(0, intval($bytes))]);
+    if(intval($key['request_limit']) > 0 && $requests + 1 > intval($key['request_limit'])){ pan_api_key_record_daily_event($DB, $keyId, 'denied', 'requests'); return ['ok'=>false, 'reason'=>'requests', 'key'=>$key]; }
+    if(intval($key['daily_traffic_limit']) > 0 && $usedBytes + max(0, intval($bytes)) > intval($key['daily_traffic_limit'])){ pan_api_key_record_daily_event($DB, $keyId, 'denied', 'traffic'); return ['ok'=>false, 'reason'=>'traffic', 'key'=>$key]; }
+    $DB->exec("INSERT INTO pre_api_key_usage (key_id,usage_date,requests,bytes,denied_requests,updated_at) VALUES (:key_id,CURDATE(),1,:bytes,0,NOW()) ON DUPLICATE KEY UPDATE requests=requests+1,bytes=bytes+VALUES(bytes),updated_at=NOW()", [':key_id'=>$keyId, ':bytes'=>max(0, intval($bytes))]);
     $DB->exec("UPDATE pre_api_key SET last_used_at=NOW() WHERE id=:id", [':id'=>$keyId]);
     return ['ok'=>true, 'key'=>$key, 'uid'=>intval($key['uid'])];
+}
+
+function pan_prune_api_key_usage($DB, $retentionDays) {
+    $retentionDays = max(30, min(3650, intval($retentionDays)));
+    $count = intval($DB->getColumn("SELECT count(*) FROM pre_api_key_usage WHERE usage_date<DATE_SUB(CURDATE(),INTERVAL {$retentionDays} DAY)"));
+    if($count > 0) $DB->exec("DELETE FROM pre_api_key_usage WHERE usage_date<DATE_SUB(CURDATE(),INTERVAL {$retentionDays} DAY)");
+    return $count;
 }
 
 function pan_api_key_error_message($reason) {

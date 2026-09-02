@@ -15,8 +15,19 @@ function pan_quota_rebuild_user($DB, $uid) {
     $row = $DB->getRow("SELECT COALESCE(SUM(size),0) AS used_bytes,COUNT(*) AS file_count FROM pre_file WHERE uid=:uid", [':uid'=>$uid]);
     $used = intval($row['used_bytes']);
     $count = intval($row['file_count']);
-    $DB->exec("INSERT INTO pre_user_usage (uid,used_bytes,file_count,daily_upload_bytes,daily_upload_date,updated_at) VALUES (:uid,:used,:count,0,CURDATE(),NOW()) ON DUPLICATE KEY UPDATE used_bytes=VALUES(used_bytes),file_count=VALUES(file_count),updated_at=NOW()", [':uid'=>$uid, ':used'=>$used, ':count'=>$count]);
+    $DB->exec("INSERT INTO pre_user_usage (uid,used_bytes,file_count,daily_upload_bytes,daily_upload_date,updated_at,reconciled_at) VALUES (:uid,:used,:count,0,CURDATE(),NOW(),NOW()) ON DUPLICATE KEY UPDATE used_bytes=VALUES(used_bytes),file_count=VALUES(file_count),reconciled_at=NOW()", [':uid'=>$uid, ':used'=>$used, ':count'=>$count]);
     return ['used_bytes'=>$used, 'file_count'=>$count];
+}
+
+function pan_quota_reconcile_pending($DB, $limit = 200) {
+    $limit = max(1, min(1000, intval($limit)));
+    $rows = $DB->getAll("SELECT uid FROM pre_user_usage WHERE reconciled_at IS NULL OR updated_at>reconciled_at ORDER BY updated_at ASC LIMIT {$limit}");
+    $count = 0;
+    foreach((array)$rows as $row){
+        pan_quota_rebuild_user($DB, intval($row['uid']));
+        $count++;
+    }
+    return $count;
 }
 
 function pan_quota_usage($DB, $uid) {
@@ -24,7 +35,7 @@ function pan_quota_usage($DB, $uid) {
     $row = $DB->getRow("SELECT used_bytes,file_count,daily_upload_bytes,daily_upload_date FROM pre_user_usage WHERE uid=:uid LIMIT 1", [':uid'=>$uid]);
     if(!$row) return pan_quota_rebuild_user($DB, $uid) + ['daily_upload_bytes'=>0];
     if($row['daily_upload_date'] !== date('Y-m-d')){
-        $DB->exec("UPDATE pre_user_usage SET daily_upload_bytes=0,daily_upload_date=CURDATE(),updated_at=NOW() WHERE uid=:uid", [':uid'=>$uid]);
+        $DB->exec("UPDATE pre_user_usage SET daily_upload_bytes=0,daily_upload_date=CURDATE() WHERE uid=:uid", [':uid'=>$uid]);
         $row['daily_upload_bytes'] = 0;
     }
     return ['used_bytes'=>intval($row['used_bytes']), 'file_count'=>intval($row['file_count']), 'daily_upload_bytes'=>intval($row['daily_upload_bytes'])];

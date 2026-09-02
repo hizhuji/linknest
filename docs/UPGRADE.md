@@ -56,6 +56,10 @@ This migration adds user-owned tags and favorites, quota and usage tables, and h
 
 After upgrading, visit **Admin -> Account & API** to set individual limits, calibrate existing user usage, and create restricted API Keys. Quota enforcement is off by default, so existing uploads are not interrupted. Enable it later in **Admin -> File Upload Settings** only after confirming appropriate limits. Schedule the existing daily `cron.php` task to keep usage counters calibrated.
 
+## Upgrade to database version 1011
+
+This lightweight maintenance update changes the daily task to reconcile only accounts whose file usage changed since the last reconciliation. It also changes API Key audit data from one administrator-audit row per request to compact daily Key usage and denial summaries. Existing daily request and traffic counters are retained; the default summary retention is 180 days and can be adjusted in the API settings.
+
 ## API callers
 
 Existing API callers continue to work after upgrade because token enforcement is initially disabled for upgraded sites. Configure an API token in the admin API settings, update callers to send `X-Api-Key` or `api_token`, then enable API-token enforcement.

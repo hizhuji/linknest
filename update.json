@@ -1,17 +1,17 @@
 {
   "schema": 1,
-  "version": "1690",
-  "version_name": "6.9.0",
+  "version": "1691",
+  "version_name": "6.9.1",
   "released_at": "2026-09-02",
   "min_version": "1601",
-  "database_version": "1010",
-  "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.9.0.zip",
-  "sha256": "678e77572f2ca616cf2b344cbc26289c417412ff451632efd6482df434f7d58c",
+  "database_version": "1011",
+  "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.9.1.zip",
+  "sha256": "PENDING",
   "changelog": [
-    "新增登录用户标签、收藏与多条件筛选，后台文件管理同步支持标签、收藏和大小范围。",
-    "新增用户存储空间、文件数量、每日上传配额与用量校准；默认只统计，不影响现有上传。",
-    "新增受限 API Key：支持用户绑定、独立权限、有效期、IP/CIDR、请求和流量上限及随时撤销。",
-    "API Key 只在创建时显示完整值，数据库仅保存哈希；保留旧 api_token 上传兼容。",
-    "数据库升级至 1010，原有文件、分享、账号和存储对象保持不变，无需重新安装。"
+    "每日维护任务仅校准近期有文件用量变动的账户，单次最多处理 200 个，避免扫描全体用户。",
+    "修复用量校准会清零当天上传累计的问题；校准只修正已用空间和文件数量。",
+    "API Key 的成功和已识别拒绝调用改为按 Key 与日期汇总，后台可查看今日请求、流量、拒绝次数和最后拒绝原因。",
+    "新增 API Key 日汇总保留期，默认 180 天；既有计划任务会自动清理过期统计，控制数据库长期增长。",
+    "数据库升级至 1011；原有文件、分享、账号、配额和 API Key 均保留，无需重新安装。"
   ]
 }

@@ -69,12 +69,10 @@ if($apiAct !== '' && $apiAct !== 'upload'){
 	if(!isset($scopeMap[$apiAct])) showresult(['code'=>-4, 'msg'=>'未知 API 操作']);
 	$keyResult = pan_api_key_authorize($DB, pan_api_key_presented_secret(), $scopeMap[$apiAct], $clientip, 0);
 	if(!$keyResult['ok']){
-		if(isset($keyResult['key'])) pan_audit_admin_action($DB, 'api-key', 'api_key_denied', 'api_key', $keyResult['key']['id'], ['reason'=>$keyResult['reason'], 'scope'=>$scopeMap[$apiAct]]);
 		showresult(['code'=>-4, 'msg'=>pan_api_key_error_message($keyResult['reason'])]);
 	}
 	$keyId = intval($keyResult['key']['id']);
 	$keyUid = intval($keyResult['uid']);
-	pan_audit_admin_action($DB, 'api-key', 'api_key_used', 'api_key', $keyId, ['scope'=>$scopeMap[$apiAct]]);
 	if($apiAct === 'metadata'){
 		$fileId = intval(isset($_POST['file_id']) ? $_POST['file_id'] : 0);
 		$hash = isset($_POST['hash']) ? trim($_POST['hash']) : '';
@@ -114,11 +112,9 @@ if(empty($name))showresult(['code'=>-1, 'msg'=>'文件名不能为空']);
 if(strpos($presentedApiSecret, 'lnk_') === 0){
 	$apiKeyAuth = pan_api_key_authorize($DB, $presentedApiSecret, 'files.upload', $clientip, $size);
 	if(!$apiKeyAuth['ok']){
-		if(isset($apiKeyAuth['key'])) pan_audit_admin_action($DB, 'api-key', 'api_key_denied', 'api_key', $apiKeyAuth['key']['id'], ['reason'=>$apiKeyAuth['reason']]);
 		showresult(['code'=>-4, 'msg'=>pan_api_key_error_message($apiKeyAuth['reason'])]);
 	}
 	$apiUid = intval($apiKeyAuth['uid']);
-	pan_audit_admin_action($DB, 'api-key', 'api_key_used', 'api_key', $apiKeyAuth['key']['id'], ['scope'=>'files.upload']);
 }elseif(isset($conf['api_require_token']) && $conf['api_require_token'] == 1){
 	if(empty($conf['api_token']) || !hash_equals($conf['api_token'], $presentedApiSecret))showresult(['code'=>-4, 'msg'=>'API 密钥不正确']);
 }

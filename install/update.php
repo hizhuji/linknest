@@ -32,7 +32,7 @@ if($rs = $db->query("SELECT v FROM pre_config WHERE k='version'")){
 	$version = $rs->fetchColumn();
 }
 
-if($version>=1010){
+if($version>=1011){
 	exit('你的网站已经升级到最新版本了');
 }
 $sqls = [];
@@ -78,6 +78,10 @@ if($version<1010){
 	$sqls = array_merge($sqls, explode(';', file_get_contents(__DIR__.'/update_1010.sql')));
 	$sqls[]="REPLACE INTO `pre_config` VALUES ('version', '1010')";
 }
+if($version<1011){
+	$sqls = array_merge($sqls, explode(';', file_get_contents(__DIR__.'/update_1011.sql')));
+	$sqls[]="REPLACE INTO `pre_config` VALUES ('version', '1011')";
+}
 $success=0;$error=0;$errorMsg=null;
 foreach ($sqls as $value) {
 	$value=trim($value);
@@ -91,8 +95,8 @@ foreach ($sqls as $value) {
 		$success++;
 	}
 }
-if($version < 1010 && $error === 0){
-	pan_audit_admin_action($DB, $conf['admin_user'], 'database_upgraded', 'database', '1010', ['from_version'=>intval($version), 'to_version'=>1010]);
+if($version < 1011 && $error === 0){
+	pan_audit_admin_action($DB, $conf['admin_user'], 'database_upgraded', 'database', '1011', ['from_version'=>intval($version), 'to_version'=>1011]);
 }
 echo '成功执行SQL语句'.$success.'条！<br/>';
 if($errorMsg){
