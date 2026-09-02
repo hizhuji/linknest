@@ -50,6 +50,12 @@ php /path/to/linknest/cron.php
 
 The task clears only expired recycle-bin items and expired snapshots. Physical object deletion is retried through an internal cleanup queue so a temporary storage failure does not turn into silent data loss.
 
+## Upgrade to database version 1010
+
+This migration adds user-owned tags and favorites, quota and usage tables, and hashed API Key records. Existing files, shares, storage objects, users, and the old upload API token remain unchanged.
+
+After upgrading, visit **Admin -> Account & API** to set individual limits, calibrate existing user usage, and create restricted API Keys. Quota enforcement is off by default, so existing uploads are not interrupted. Enable it later in **Admin -> File Upload Settings** only after confirming appropriate limits. Schedule the existing daily `cron.php` task to keep usage counters calibrated.
+
 ## API callers
 
 Existing API callers continue to work after upgrade because token enforcement is initially disabled for upgraded sites. Configure an API token in the admin API settings, update callers to send `X-Api-Key` or `api_token`, then enable API-token enforcement.

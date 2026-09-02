@@ -1,19 +1,17 @@
 {
   "schema": 1,
-  "version": "1680",
-  "version_name": "6.8.0",
+  "version": "1690",
+  "version_name": "6.9.0",
   "released_at": "2026-09-02",
   "min_version": "1601",
-  "database_version": "1009",
-  "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.8.0.zip",
-  "sha256": "81c67e829b3f778061ee52854f5c7313390f38e36fc3df506d28dd60168f610a",
+  "database_version": "1010",
+  "package_url": "https://raw.githubusercontent.com/hizhuji/linknest/main/releases/linknest-v6.9.0.zip",
+  "sha256": "PENDING",
   "changelog": [
-    "新增回收站与可恢复删除，默认保留 30 天。",
-    "新增后台替换文件的历史版本快照与恢复能力。",
-    "新增管理员审计日志和 CSV 导出。",
-    "新增分享密码错误专用限频与临时锁定。",
-    "新增存储健康检查、备份状态记录和 CLI 维护任务。",
-    "数据库升级至 1009，物理删除通过可重试存储清理队列执行。",
-    "升级保留现有文件、账号、设置和旧链接，无需重新安装。"
+    "新增登录用户标签、收藏与多条件筛选，后台文件管理同步支持标签、收藏和大小范围。",
+    "新增用户存储空间、文件数量、每日上传配额与用量校准；默认只统计，不影响现有上传。",
+    "新增受限 API Key：支持用户绑定、独立权限、有效期、IP/CIDR、请求和流量上限及随时撤销。",
+    "API Key 只在创建时显示完整值，数据库仅保存哈希；保留旧 api_token 上传兼容。",
+    "数据库升级至 1010，原有文件、分享、账号和存储对象保持不变，无需重新安装。"
   ]
 }

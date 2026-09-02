@@ -4,9 +4,9 @@ if(defined('IN_CRONLITE'))return;
 define('IN_CRONLITE', true);
 define('SYSTEM_ROOT', dirname(__FILE__).'/');
 define('ROOT', dirname(SYSTEM_ROOT).'/');
-define('VERSION', '1680');
-define('VERSION_NAME', '6.8.0');
-define('DB_VERSION', '1009');
+define('VERSION', '1690');
+define('VERSION_NAME', '6.9.0');
+define('DB_VERSION', '1010');
 date_default_timezone_set('Asia/Shanghai');
 $date = date("Y-m-d H:i:s");
 
@@ -43,6 +43,9 @@ exit();
 include_once(SYSTEM_ROOT."functions.php");
 include_once(SYSTEM_ROOT."shares.php");
 include_once(SYSTEM_ROOT."maintenance.php");
+include_once(SYSTEM_ROOT."organization.php");
+include_once(SYSTEM_ROOT."quota.php");
+include_once(SYSTEM_ROOT."api_keys.php");
 
 $conf=getAllSetting();
 define('SYS_KEY', $conf['syskey']);

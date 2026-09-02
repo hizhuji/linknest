@@ -41,6 +41,26 @@ if(isset($_GET['m']) && $_GET['m']=='mine'){
 	$conditions[] = 'EXISTS (SELECT 1 FROM pre_share public_s WHERE public_s.file_id=f.id AND public_s.status=1 AND (public_s.expire_at IS NULL OR public_s.expire_at>NOW()) AND (public_s.max_accesses=0 OR public_s.access_count<public_s.max_accesses))';
     $link = '';
 }
+$mineTags = [];
+if(isset($_GET['m']) && $_GET['m']==='mine' && $islogin2){
+    $mineTags = pan_user_tags($DB, $uid);
+    if(!empty($_GET['tag'])){
+        $conditions[] = 'EXISTS (SELECT 1 FROM pre_file_tag filter_ft INNER JOIN pre_tag filter_t ON filter_t.id=filter_ft.tag_id WHERE filter_ft.file_id=f.id AND filter_t.uid=:tag_uid AND filter_t.id=:tag_id)';
+        $params[':tag_uid'] = intval($uid);
+        $params[':tag_id'] = intval($_GET['tag']);
+        $link .= '&tag='.intval($_GET['tag']);
+    }
+    if(!empty($_GET['favorite'])){
+        $conditions[] = 'EXISTS (SELECT 1 FROM pre_file_favorite filter_fav WHERE filter_fav.file_id=f.id AND filter_fav.uid=:favorite_uid)';
+        $params[':favorite_uid'] = intval($uid);
+        $link .= '&favorite=1';
+    }
+    if(!empty($_GET['ext'])){ $conditions[]='f.type=:mine_ext'; $params[':mine_ext']=strtolower(substr(trim($_GET['ext']),0,50)); $link.='&ext='.rawurlencode($_GET['ext']); }
+    if(isset($_GET['min_size']) && $_GET['min_size']!==''){ $conditions[]='f.size>=:mine_min_size'; $params[':mine_min_size']=max(0, intval(floatval($_GET['min_size'])*1048576)); $link.='&min_size='.rawurlencode($_GET['min_size']); }
+    if(isset($_GET['max_size']) && $_GET['max_size']!==''){ $conditions[]='f.size<=:mine_max_size'; $params[':mine_max_size']=max(0, intval(floatval($_GET['max_size'])*1048576)); $link.='&max_size='.rawurlencode($_GET['max_size']); }
+    if(!empty($_GET['from'])){ $conditions[]='f.addtime>=:mine_from'; $params[':mine_from']=date('Y-m-d 00:00:00', strtotime($_GET['from'])); $link.='&from='.rawurlencode($_GET['from']); }
+    if(!empty($_GET['to'])){ $conditions[]='f.addtime<:mine_to'; $params[':mine_to']=date('Y-m-d 00:00:00', strtotime($_GET['to'].' +1 day')); $link.='&to='.rawurlencode($_GET['to']); }
+}
 $kw = isset($_GET['kw'])?trim(strip_tags($_GET['kw'])):null;
 if($conf['filesearch']==1 && $kw){
 	$conditions[] = 'f.name LIKE :kw';
@@ -78,6 +98,17 @@ include SYSTEM_ROOT.'header.php';
 			</form>
             <?php }?>
         </div>
+        <?php if($mineTags || (isset($_GET['m']) && $_GET['m']==='mine' && $islogin2)){?>
+        <form class="form-inline" method="get" style="padding:0 16px 12px">
+          <input type="hidden" name="m" value="mine"><input type="hidden" name="kw" value="<?php echo htmlspecialchars($kw, ENT_QUOTES, 'UTF-8');?>">
+          <select class="form-control" name="tag"><option value="">全部标签</option><?php foreach($mineTags as $tag){?><option value="<?php echo intval($tag['id']);?>" <?php echo isset($_GET['tag']) && intval($_GET['tag'])===intval($tag['id']) ? 'selected' : '';?>><?php echo htmlspecialchars($tag['name'], ENT_QUOTES, 'UTF-8');?> (<?php echo intval($tag['file_count']);?>)</option><?php }?></select>
+          <input class="form-control" name="ext" placeholder="格式" value="<?php echo htmlspecialchars(isset($_GET['ext'])?$_GET['ext']:'', ENT_QUOTES, 'UTF-8');?>">
+          <input class="form-control" name="min_size" type="number" min="0" step="0.1" placeholder="最小 MB" value="<?php echo htmlspecialchars(isset($_GET['min_size'])?$_GET['min_size']:'', ENT_QUOTES, 'UTF-8');?>">
+          <input class="form-control" name="max_size" type="number" min="0" step="0.1" placeholder="最大 MB" value="<?php echo htmlspecialchars(isset($_GET['max_size'])?$_GET['max_size']:'', ENT_QUOTES, 'UTF-8');?>">
+          <label><input type="checkbox" name="favorite" value="1" <?php echo !empty($_GET['favorite'])?'checked':'';?>> 收藏</label>
+          <button class="btn btn-default" type="submit">筛选</button>
+        </form>
+        <?php }?>
         <div class="table-responsive file-table-wrap">
        <table class="table table-hover filelist">
             <thead>
@@ -104,7 +135,14 @@ while($res = $rs->fetch())
 {
 	$viewurl = './s.php?code='.rawurlencode($res['share_code']);
 	$fileurl = $viewurl;
-	echo '<tr><td class="file-index">'.str_pad($i++, 2, '0', STR_PAD_LEFT).'</td><td class="file-actions"><a href="'.$fileurl.'"><i class="fa fa-download" aria-hidden="true"></i>下载</a><a href="'.$viewurl.'"><i class="fa fa-external-link" aria-hidden="true"></i>查看</a></td><td class="file-name"><i class="fa '.type_to_icon($res['type']).' fa-fw" aria-hidden="true"></i><span>'.htmlspecialchars($res['name'], ENT_QUOTES, 'UTF-8').'</span></td><td>'.size_format($res['size']).'</td><td><span class="file-type">'.htmlspecialchars($res['type']?$res['type']:'未知', ENT_QUOTES, 'UTF-8').'</span></td><td>'.htmlspecialchars($res['addtime'], ENT_QUOTES, 'UTF-8').'</td><td>'.htmlspecialchars(preg_replace('/\d+$/','*',$res['ip']), ENT_QUOTES, 'UTF-8').'</td></tr>';
+	$mineTools = '';
+	if(isset($_GET['m']) && $_GET['m']==='mine' && $islogin2){
+		$tags = pan_file_tags($DB, intval($res['id']), $uid);
+		$tagText = implode(', ', array_map(function($tag){ return $tag['name']; }, $tags));
+		$isFavorite = intval($DB->getColumn("SELECT count(*) FROM pre_file_favorite WHERE uid=:uid AND file_id=:file_id", [':uid'=>$uid, ':file_id'=>intval($res['id'])])) > 0;
+		$mineTools = '<br><a href="javascript:editTags('.intval($res['id']).','.htmlspecialchars(pan_json_for_html($tagText), ENT_QUOTES, 'UTF-8').')"><i class="fa fa-tags"></i> '.htmlspecialchars($tagText ?: '标签', ENT_QUOTES, 'UTF-8').'</a> <a href="javascript:toggleFavorite('.intval($res['id']).','.($isFavorite?0:1).')"><i class="fa fa-star'.($isFavorite?'':'-o').'"></i></a>';
+	}
+	echo '<tr><td class="file-index">'.str_pad($i++, 2, '0', STR_PAD_LEFT).'</td><td class="file-actions"><a href="'.$fileurl.'"><i class="fa fa-download" aria-hidden="true"></i>下载</a><a href="'.$viewurl.'"><i class="fa fa-external-link" aria-hidden="true"></i>查看</a></td><td class="file-name"><i class="fa '.type_to_icon($res['type']).' fa-fw" aria-hidden="true"></i><span>'.htmlspecialchars($res['name'], ENT_QUOTES, 'UTF-8').'</span>'.$mineTools.'</td><td>'.size_format($res['size']).'</td><td><span class="file-type">'.htmlspecialchars($res['type']?$res['type']:'未知', ENT_QUOTES, 'UTF-8').'</span></td><td>'.htmlspecialchars($res['addtime'], ENT_QUOTES, 'UTF-8').'</td><td>'.htmlspecialchars(preg_replace('/\d+$/','*',$res['ip']), ENT_QUOTES, 'UTF-8').'</td></tr>';
 }
 if($numrows == 0) echo '<tr><td colspan="7" class="empty-files"><i class="fa fa-folder-open-o" aria-hidden="true"></i><strong>这里还没有文件</strong><span>上传一个文件，开始建立你的共享空间。</span><a href="./upload.php" class="btn btn-primary">上传文件</a></td></tr>';
 ?>
@@ -151,6 +189,10 @@ echo '<li class="disabled"><a>尾页</a></li>';
 </section>
 </main>
 <?php include SYSTEM_ROOT.'footer.php';?>
+<?php if(isset($_GET['m']) && $_GET['m']==='mine' && $islogin2){?><script>
+function editTags(fileId, current){ var tags=prompt('用逗号分隔标签，最多 12 个：', current||''); if(tags===null)return; $.post('user_ajax.php?act=tags',{file_id:fileId,tags:tags},function(r){ if(r.code===0) location.reload(); else alert(r.msg);},'json'); }
+function toggleFavorite(fileId, favorite){ $.post('user_ajax.php?act=favorite',{file_id:fileId,favorite:favorite},function(r){ if(r.code===0) location.reload(); else alert(r.msg);},'json'); }
+</script><?php }?>
 <?php if(!empty($conf['gonggao'])){?>
 <link href="https://s4.zstatic.net/ajax/libs/snackbarjs/1.1.0/snackbar.min.css" rel="stylesheet">
 <script src="https://s4.zstatic.net/ajax/libs/snackbarjs/1.1.0/snackbar.min.js"></script>

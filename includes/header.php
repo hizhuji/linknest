@@ -27,6 +27,12 @@
     <script src="https://s4.zstatic.net/ajax/libs/respond.js/1.4.2/respond.min.js"></script>
   <![endif]-->
   <script type="text/javascript" src="https://s4.zstatic.net/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <?php if($islogin2){?><script>
+  window.PAN_CSRF_TOKEN = <?php echo pan_json_for_html(pan_csrf_token()); ?>;
+  $.ajaxPrefilter(function(options, originalOptions, jqXHR) {
+    if(!options.crossDomain && ['POST', 'PUT', 'PATCH', 'DELETE'].indexOf((options.type || 'GET').toUpperCase()) !== -1) jqXHR.setRequestHeader('X-CSRF-Token', window.PAN_CSRF_TOKEN);
+  });
+  </script><?php }?>
 </head>
 <body>
 
@@ -58,6 +64,7 @@
               <li class="dropdown">
                 <a data-target="#" class="dropdown-toggle" data-toggle="dropdown"><i class="fa fa-<?php echo $userrow['type']=='qq'?'qq':'wechat';?>" aria-hidden="true"></i> <?php echo $userrow['nickname']?><b class="caret"></b></a>
                 <ul class="dropdown-menu">
+                  <li><a href="./?m=mine&favorite=1"><i class="fa fa-star" aria-hidden="true"></i> 我的收藏</a></li>
                   <li><a href="./login.php?logout=1" onclick="return confirm('是否确定退出登录？')"><i class="fa fa-sign-out" aria-hidden="true"></i> 退出登录</a></li>
                 </ul>
               </li>

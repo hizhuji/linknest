@@ -115,6 +115,10 @@ if($islogin==1){}else exit("<script language='javascript'>window.location.href='
 			<div class="form-group">
 			<input type="text" class="form-control" name="uid" style="width: 100px;" placeholder="UID">
 			</div>
+			<div class="form-group"><input type="text" class="form-control" name="tag" style="width: 110px;" placeholder="标签"></div>
+			<div class="form-group"><input type="number" class="form-control" name="min_size" style="width: 95px;" min="0" step="0.1" placeholder="最小 MB"></div>
+			<div class="form-group"><input type="number" class="form-control" name="max_size" style="width: 95px;" min="0" step="0.1" placeholder="最大 MB"></div>
+			<div class="form-group"><label class="checkbox-inline"><input type="checkbox" name="favorite" value="1"> 已收藏</label></div>
 			<div class="form-group">
 			<select id="dstatus" name="dstatus" class="form-control"><option value="-1">全部文件</option><option value="0">正常文件</option><option value="1">已屏蔽文件</option><option value="2">待审核文件</option><option value="3">回收站</option></select>
 		    </div>
@@ -211,6 +215,11 @@ $(document).ready(function(){
 					var limit = parseInt(row.max_downloads) > 0 ? row.count + ' / ' + row.max_downloads + ' 次' : row.count + ' / 不限';
 					return expiry + '<br/>' + limit;
 				}
+			},
+			{
+				field: 'tag_names',
+				title: '标签/收藏',
+				formatter: function(value, row) { return (value ? $('<div>').text(value).html() : '-') + (row.favorite_count ? '<br/><i class="fa fa-star text-warning"></i> '+row.favorite_count : ''); }
 			},
 			{
 				field: 'version_count',

@@ -73,6 +73,8 @@ case 'pre_upload':
 		$result = ['code'=>1, 'msg'=>'文件已秒传并创建独立分享', 'exists'=>1, 'hash'=>$hash, 'name'=>$name, 'size'=>$size, 'type'=>$ext, 'id'=>$row['id'], 'share_code'=>$share['code'], 'pageurl'=>$siteurl.'s.php?code='.$share['code']];
 		exit(json_encode($result));
 	}
+	$quotaReason = pan_quota_check_upload($DB, $uid, $size, 1, $conf);
+	if($quotaReason) exit(json_encode(['code'=>-1, 'msg'=>pan_quota_upload_error($quotaReason)]));
 
 	if(\lib\StorHelper::supports_direct_upload() && $conf['uploadfile_type'] == 1){
 		$param = $stor->getUploadParam($hash, $name, $limit_size * 1024 * 1024);
@@ -171,6 +173,7 @@ case 'upload_part':
 	$sds = $DB->exec("INSERT INTO `pre_file` (`name`,`type`,`size`,`hash`,`addtime`,`ip`,`hide`,`pwd`,`expire_at`,`max_downloads`,`uid`) values (:name,:type,:size,:hash,NOW(),:ip,:hide,:pwd,:expire_at,:max_downloads,:uid)", [':name'=>$name, ':type'=>$ext, ':size'=>$size, ':hash'=>$hash, ':ip'=>$clientip, ':hide'=>$hide, ':pwd'=>$pwd, ':expire_at'=>$expire_at, ':max_downloads'=>$max_downloads, ':uid'=>($uid?$uid:0)]);
 	if(!$sds)exit('{"code":-1,"msg":"上传失败'.$DB->error().'","error":"database"}');
 	$id = $DB->lastInsertId();
+	pan_quota_record_file_created($DB, $uid, $size);
 	$share = pan_create_share($DB, $id, ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>($uid?$uid:0)]);
 	if(!$share)exit('{"code":-1,"msg":"文件已保存，但创建分享链接失败"}');
 
@@ -228,6 +231,7 @@ case 'complete_upload':
 	$sds = $DB->exec("INSERT INTO `pre_file` (`name`,`type`,`size`,`hash`,`addtime`,`ip`,`hide`,`pwd`,`expire_at`,`max_downloads`,`uid`) values (:name,:type,:size,:hash,NOW(),:ip,:hide,:pwd,:expire_at,:max_downloads,:uid)", [':name'=>$name, ':type'=>$ext, ':size'=>$size, ':hash'=>$hash, ':ip'=>$clientip, ':hide'=>$hide, ':pwd'=>$pwd, ':expire_at'=>$expire_at, ':max_downloads'=>$max_downloads, ':uid'=>($uid?$uid:0)]);
 	if(!$sds)exit('{"code":-1,"msg":"上传失败'.$DB->error().'","error":"database"}');
 	$id = $DB->lastInsertId();
+	pan_quota_record_file_created($DB, $uid, $size);
 	$share = pan_create_share($DB, $id, ['password'=>$pwd, 'expire_at'=>$expire_at, 'max_accesses'=>$max_downloads, 'uid'=>($uid?$uid:0)]);
 	if(!$share)exit('{"code":-1,"msg":"文件已保存，但创建分享链接失败"}');
 

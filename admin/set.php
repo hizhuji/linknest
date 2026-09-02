@@ -281,6 +281,22 @@ $(document).ready(function(){
 	  <div class="col-sm-9"><select class="form-control" name="forcelogin" default="<?php echo $conf['forcelogin']?>"><option value="0">0_否</option><option value="1">1_是</option></select></div>
 	</div><br/>
 	<div class="form-group">
+	  <label class="col-sm-3 control-label">启用用户配额</label>
+	  <div class="col-sm-9"><select class="form-control" name="user_quota_enforced" default="<?php echo !empty($conf['user_quota_enforced']) ? 1 : 0; ?>"><option value="0">关闭（仅统计）</option><option value="1">开启（拒绝超限上传）</option></select><p class="help-block">具体用户的存储、文件数和每日上传上限在“账户与接口”中配置。回收站内的文件继续占用空间。</p></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">新用户默认存储上限</label>
+	  <div class="col-sm-9"><div class="input-group"><input type="number" min="0" name="user_quota_bytes_mb" value="<?php echo !empty($conf['user_quota_bytes']) ? intval($conf['user_quota_bytes']/1048576) : 0; ?>" class="form-control"/><span class="input-group-addon">MB</span></div><p class="help-block">0 表示不限制；仅用于尚未设置专属配额的用户。</p></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">新用户默认文件数量</label>
+	  <div class="col-sm-9"><input type="number" min="0" name="user_quota_files" value="<?php echo isset($conf['user_quota_files']) ? intval($conf['user_quota_files']) : 0; ?>" class="form-control"/></div>
+	</div><br/>
+	<div class="form-group">
+	  <label class="col-sm-3 control-label">新用户默认每日上传</label>
+	  <div class="col-sm-9"><div class="input-group"><input type="number" min="0" name="user_daily_upload_bytes_mb" value="<?php echo !empty($conf['user_daily_upload_bytes']) ? intval($conf['user_daily_upload_bytes']/1048576) : 0; ?>" class="form-control"/><span class="input-group-addon">MB</span></div></div>
+	</div><br/>
+	<div class="form-group">
 	  <div class="col-sm-offset-3 col-sm-9"><input type="submit" name="submit" value="修改" class="btn btn-primary form-control"/><br/>
 	 </div>
 	</div>

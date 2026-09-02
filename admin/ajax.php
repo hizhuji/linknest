@@ -44,6 +44,15 @@ case 'set':
 	}
 	if(isset($_POST['webdav_root'])) $_POST['webdav_root'] = trim(str_replace('\\', '/', $_POST['webdav_root']), '/');
 	if(isset($_POST['access_log_retention_days'])) $_POST['access_log_retention_days'] = max(1, min(3650, intval($_POST['access_log_retention_days'])));
+	if(isset($_POST['user_quota_bytes_mb'])){
+		$_POST['user_quota_bytes'] = max(0, intval(floatval($_POST['user_quota_bytes_mb']) * 1048576));
+		unset($_POST['user_quota_bytes_mb']);
+	}
+	if(isset($_POST['user_daily_upload_bytes_mb'])){
+		$_POST['user_daily_upload_bytes'] = max(0, intval(floatval($_POST['user_daily_upload_bytes_mb']) * 1048576));
+		unset($_POST['user_daily_upload_bytes_mb']);
+	}
+	if(isset($_POST['user_quota_files'])) $_POST['user_quota_files'] = max(0, intval($_POST['user_quota_files']));
 	if(isset($_POST['green_label_porn'])){
 		$_POST['green_label_porn'] = implode(',',$_POST['green_label_porn']);
 	}

@@ -48,6 +48,15 @@ case 'fileList':
 			$params[':ip']=$kw;
 		}
 	}
+	if(isset($_POST['tag']) && trim($_POST['tag']) !== ''){
+		$conditions[]='EXISTS (SELECT 1 FROM pre_file_tag admin_ft INNER JOIN pre_tag admin_t ON admin_t.id=admin_ft.tag_id WHERE admin_ft.file_id=pre_file.id AND admin_t.name LIKE :tag)';
+		$params[':tag']='%'.trim($_POST['tag']).'%';
+	}
+	if(!empty($_POST['favorite'])) $conditions[]='EXISTS (SELECT 1 FROM pre_file_favorite admin_fav WHERE admin_fav.file_id=pre_file.id)';
+	if(isset($_POST['min_size']) && $_POST['min_size'] !== ''){ $conditions[]='`size`>=:min_size'; $params[':min_size']=max(0, intval(floatval($_POST['min_size'])*1048576)); }
+	if(isset($_POST['max_size']) && $_POST['max_size'] !== ''){ $conditions[]='`size`<=:max_size'; $params[':max_size']=max(0, intval(floatval($_POST['max_size'])*1048576)); }
+	if(!empty($_POST['date_from'])){ $conditions[]='`addtime`>=:date_from'; $params[':date_from']=date('Y-m-d 00:00:00', strtotime($_POST['date_from'])); }
+	if(!empty($_POST['date_to'])){ $conditions[]='`addtime`<:date_to'; $params[':date_to']=date('Y-m-d 00:00:00', strtotime($_POST['date_to'].' +1 day')); }
 	if($_POST['orderby'] == 1){
 		$orderby = 'count desc';
 	}else{
@@ -72,6 +81,8 @@ case 'fileList':
 		$row['share_count'] = intval($DB->getColumn("SELECT count(*) FROM pre_share WHERE file_id=:file_id", [':file_id'=>intval($row['id'])]));
 		$row['version_count'] = intval($DB->getColumn("SELECT count(*) FROM pre_file_version WHERE file_id=:file_id", [':file_id'=>intval($row['id'])]));
 		$row['is_deleted'] = !empty($row['deleted_at']);
+		$row['tag_names'] = implode(', ', array_map(function($tag){ return $tag['name']; }, $DB->getAll("SELECT t.name FROM pre_file_tag ft INNER JOIN pre_tag t ON t.id=ft.tag_id WHERE ft.file_id=:file_id ORDER BY t.name", [':file_id'=>intval($row['id'])])));
+		$row['favorite_count'] = intval($DB->getColumn("SELECT count(*) FROM pre_file_favorite WHERE file_id=:file_id", [':file_id'=>intval($row['id'])]));
 
 		$list2[] = $row;
 	}

@@ -74,6 +74,7 @@ function pan_purge_file($DB, $stor, $fileId, $actor) {
     $row = $DB->getRow("SELECT * FROM pre_file WHERE id=:id AND deleted_at IS NOT NULL LIMIT 1", [':id'=>$fileId]);
     if(!$row) return false;
     $hashes = [$row['hash']];
+    $ownerUid = intval($row['uid']);
     $versions = $DB->getAll("SELECT hash FROM pre_file_version WHERE file_id=:file_id", [':file_id'=>$fileId]);
     foreach((array)$versions as $version) $hashes[] = $version['hash'];
     $shareIds = $DB->getAll("SELECT id FROM pre_share WHERE file_id=:file_id", [':file_id'=>$fileId]);
@@ -85,8 +86,11 @@ function pan_purge_file($DB, $stor, $fileId, $actor) {
         $DB->exec("DELETE FROM pre_alert_log WHERE share_id=:id", [':id'=>$sid]);
     }
     if($DB->exec("DELETE FROM pre_share WHERE file_id=:file_id", [':file_id'=>$fileId]) === false) return false;
+    $DB->exec("DELETE FROM pre_file_tag WHERE file_id=:file_id", [':file_id'=>$fileId]);
+    $DB->exec("DELETE FROM pre_file_favorite WHERE file_id=:file_id", [':file_id'=>$fileId]);
     $DB->exec("DELETE FROM pre_file_version WHERE file_id=:file_id", [':file_id'=>$fileId]);
     if($DB->exec("DELETE FROM pre_file WHERE id=:id", [':id'=>$fileId]) === false) return false;
+    pan_quota_record_file_purged($DB, $ownerUid, intval($row['size']));
     foreach(array_unique($hashes) as $hash){
         pan_enqueue_storage_cleanup($DB, $hash);
     }
@@ -111,6 +115,8 @@ function pan_replace_file_object($DB, $stor, $fileId, $tmpFile, $originalName, $
     $newSize = intval(filesize($tmpFile));
     $newHash = md5_file($tmpFile);
     if($newName === '' || $newHash === false) return ['ok'=>false, 'message'=>'无法读取新文件'];
+    $quotaReason = pan_quota_check_replace($DB, intval($file['uid']), intval($file['size']), $newSize, $conf);
+    if($quotaReason) return ['ok'=>false, 'message'=>pan_quota_upload_error($quotaReason)];
     $uploadLimit = isset($conf['upload_size']) ? intval($conf['upload_size']) : 0;
     if($uploadLimit > 0 && $newSize > $uploadLimit * 1024 * 1024) return ['ok'=>false, 'message'=>'新文件超过上传大小限制'];
     $blockedTypes = isset($conf['type_block']) ? array_filter(explode('|', $conf['type_block'])) : [];
@@ -128,6 +134,7 @@ function pan_replace_file_object($DB, $stor, $fileId, $tmpFile, $originalName, $
         if(!$objectAlreadyExists) pan_delete_storage_if_unreferenced($DB, $stor, $newHash);
         return ['ok'=>false, 'message'=>'保存版本快照失败'];
     }
+    pan_quota_adjust_file_size($DB, intval($file['uid']), intval($file['size']), $newSize, $conf);
     pan_audit_admin_action($DB, $actor, 'file_replaced', 'file', $fileId, ['previous_hash'=>$file['hash'], 'new_hash'=>$newHash]);
     return ['ok'=>true, 'message'=>'文件已替换，原文件已保存为历史版本'];
 }

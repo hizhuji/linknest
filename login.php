@@ -24,6 +24,7 @@ function finishUserLogin($type, $openid, $nickname, $faceimg) {
 		if(count($ids) > 60) $ids = array_splice($ids, 0, 60);
 		$ids = implode(',', array_map('intval', $ids));
 		$DB->exec("UPDATE pre_file SET uid='{$uid}' WHERE id IN ({$ids}) AND uid=0");
+		pan_quota_rebuild_user($DB, $uid);
 	}
 	$expiretime=time()+2592000;
 	$session=hash_hmac('sha256', $type."\0".$openid, SYS_KEY);
